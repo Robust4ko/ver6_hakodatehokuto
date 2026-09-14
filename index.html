@@ -119,7 +119,12 @@
       font-size: .85rem;
     }
     #community-report-legend[hidden], #destination-map-legend[hidden] { display: none; }
-    #community-report-legend strong, #destination-map-legend strong { display: block; margin-bottom: 5px; }
+    #community-report-legend > summary, #destination-map-legend > summary {
+      cursor: pointer;
+      font-weight: 700;
+      user-select: none;
+    }
+    #community-report-legend[open] > summary, #destination-map-legend[open] > summary { margin-bottom: 5px; }
     .community-report-legend-item { display: flex; align-items: center; gap: 7px; margin-top: 4px; }
     .community-report-legend-dot { width: 12px; height: 12px; flex-shrink: 0; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); }
     .community-report-legend-dot.use { background: #16833b; }
@@ -145,6 +150,25 @@
     #community-report-legend, #destination-map-legend {
       left: 10px;
       bottom: calc(var(--info-h) + var(--footer-h) + 8px);
+      max-width: calc(100% - 20px);
+      padding: 7px 9px;
+      font-size: .72rem;
+    }
+
+    #community-report-legend:not([open]), #destination-map-legend:not([open]) {
+      width: auto;
+    }
+
+    #community-report-legend .community-report-legend-item,
+    #destination-map-legend .community-report-legend-item {
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    #community-report-legend .community-report-legend-dot,
+    #destination-map-legend .community-report-legend-dot {
+      width: 10px;
+      height: 10px;
     }
 
     .mode-button {
@@ -425,18 +449,49 @@
       .button-row { gap: 6px; }
 
       #building-form {
-        top: 60px;
+        top: 64px;
         left: 10px;
-        width: calc(100% - 20px);
-        max-height: calc(100% - var(--info-h) - var(--footer-h) - 20px);
+        right: auto;
+        width: auto;
+        max-width: calc(60% - 15px);
+        max-height: none;
+        padding: 9px 11px;
       }
 
       #building-list-panel {
-        top: auto;
+        top: 64px;
+        left: auto;
         right: 10px;
-        bottom: calc(var(--info-h) + var(--footer-h) + 10px);
-        width: calc(100% - 20px);
-        max-height: calc(100% - var(--info-h) - var(--footer-h) - 80px);
+        bottom: auto;
+        width: auto;
+        max-width: calc(40% - 15px);
+        max-height: none;
+        padding: 9px 11px;
+      }
+
+      #building-form > summary,
+      #building-list-panel > summary {
+        font-size: .85rem;
+        white-space: nowrap;
+      }
+
+      #building-form[open],
+      #building-list-panel[open] {
+        top: 64px;
+        left: 10px;
+        right: 10px;
+        bottom: calc(var(--info-h) + var(--footer-h) + 8px);
+        z-index: 860;
+        width: auto;
+        max-width: none;
+        max-height: none;
+        padding: 12px 14px;
+        overflow: auto;
+      }
+
+      #building-form[open] > summary,
+      #building-list-panel[open] > summary {
+        font-size: 1rem;
       }
     }
   </style>
@@ -478,23 +533,23 @@
         </button>
       </div>
 
-      <section id="destination-map-legend" aria-labelledby="destination-map-legend-title">
-        <strong id="destination-map-legend-title" data-i18n="destination_map_legend_title">避難先マーカー</strong>
+      <details id="destination-map-legend">
+        <summary id="destination-map-legend-title" data-i18n="destination_map_legend_title">避難先マーカー</summary>
         <div class="community-report-legend-item"><span class="community-report-legend-dot tsunami-building" aria-hidden="true"></span><span data-i18n="building_type_tsunami_building">津波避難ビル</span></div>
         <div class="community-report-legend-item"><span class="community-report-legend-dot emergency-place" aria-hidden="true"></span><span data-i18n="building_type_emergency_place">指定緊急避難場所</span></div>
         <div class="community-report-legend-item"><span class="community-report-legend-dot shelter" aria-hidden="true"></span><span data-i18n="building_type_also_shelter">指定避難所を兼ねる</span></div>
         <div class="community-report-legend-item"><span class="community-report-legend-dot shared" aria-hidden="true"></span><span data-i18n="building_list_shared">共有投稿（公式未確認）</span></div>
         <div class="community-report-legend-item"><span class="community-report-legend-dot review" aria-hidden="true"></span><span data-i18n="building_type_review_needed">区分確認中</span></div>
-      </section>
+      </details>
 
-      <section id="community-report-legend" hidden aria-labelledby="community-report-legend-title">
-        <strong id="community-report-legend-title" data-i18n="report_legend_title">投稿マーカー</strong>
+      <details id="community-report-legend" hidden>
+        <summary id="community-report-legend-title" data-i18n="report_legend_title">投稿マーカー</summary>
         <div class="community-report-legend-item"><span class="community-report-legend-dot use" aria-hidden="true"></span><span data-i18n="report_use">使いたい</span></div>
         <div class="community-report-legend-item"><span class="community-report-legend-dot depends" aria-hidden="true"></span><span data-i18n="report_depends">状況による</span></div>
         <div class="community-report-legend-item"><span class="community-report-legend-dot avoid" aria-hidden="true"></span><span data-i18n="report_avoid">できれば避けたい</span></div>
         <button id="refresh-community-reports" type="button" disabled data-i18n="report_refresh">最新の投稿を更新</button>
         <p id="community-report-refresh-status" role="status" aria-live="polite"></p>
-      </section>
+      </details>
 
       <!-- 公式・共有投稿・このブラウザで追加した避難ビルの一覧 -->
       <details id="building-list-panel">
@@ -523,7 +578,7 @@
       </details>
 
       <!-- 地図上に重ねる、折りたたみ可能な避難ビル追加フォーム -->
-      <details id="building-form" open>
+      <details id="building-form">
         <summary>避難ビルの追加</summary>
 
         <label for="building-name">施設名</label>
@@ -632,8 +687,40 @@
       );
     }
 
-    window.addEventListener('load', updateLayoutHeightVars);
-    window.addEventListener('resize', updateLayoutHeightVars);
+    let lastMobilePanelLayout = null;
+    function updateResponsivePanels(){
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      if (isMobile === lastMobilePanelLayout) return;
+
+      document.getElementById('destination-map-legend').open = !isMobile;
+      document.getElementById('community-report-legend').open = !isMobile;
+
+      if (isMobile) {
+        document.getElementById('building-form').open = false;
+        document.getElementById('building-list-panel').open = false;
+      }
+      lastMobilePanelLayout = isMobile;
+    }
+
+    function closeOtherMapPanel(event){
+      if (!event.currentTarget.open) return;
+      const otherId = event.currentTarget.id === 'building-form'
+        ? 'building-list-panel'
+        : 'building-form';
+      document.getElementById(otherId).open = false;
+    }
+
+    updateResponsivePanels();
+    document.getElementById('building-form').addEventListener('toggle', closeOtherMapPanel);
+    document.getElementById('building-list-panel').addEventListener('toggle', closeOtherMapPanel);
+    window.addEventListener('load', () => {
+      updateLayoutHeightVars();
+      updateResponsivePanels();
+    });
+    window.addEventListener('resize', () => {
+      updateLayoutHeightVars();
+      updateResponsivePanels();
+    });
   </script>
 
   <!-- Google Maps（APIキー差し替え）-->
