@@ -12,6 +12,8 @@ let destinations = [];   // { name, name_en?, location:{lat,lng} }
 let latestDestination = null;
 
 let appMode = "evacuation";
+const IS_BUILDING_ADMIN_VIEW =
+  new URLSearchParams(window.location.search).get("admin") === "1";
 let isSelectingBuildingLocation = false;
 let buildingLocation = null;
 let buildingLocationMarker = null;
@@ -1434,7 +1436,9 @@ function setAppMode(mode) {
   }
   // 投稿時は地図を広く使う。入力値や折りたたみ状態は保持する。
   const buildingForm = document.getElementById("building-form");
-  if (buildingForm) buildingForm.hidden = appMode === "report";
+  if (buildingForm) {
+    buildingForm.hidden = !IS_BUILDING_ADMIN_VIEW || appMode === "report";
+  }
   updateModeGuidance();
   if (appMode === "evacuation") {
     clearReportDraft();
@@ -1748,6 +1752,7 @@ function renderBuildingList() {
 }
 
 function canManageBuilding(building) {
+  if (!IS_BUILDING_ADMIN_VIEW) return false;
   return building?.source === "user" ||
     (building?.source === "community" && communityCurrentUserId &&
       building.contributor_user_id === communityCurrentUserId);
@@ -1963,7 +1968,8 @@ function clearBuildingLocation() {
 }
 
 function selectBuildingLocation(location) {
-  if (!isSelectingBuildingLocation || appMode !== "evacuation" || !location) return;
+  if (!IS_BUILDING_ADMIN_VIEW ||
+      !isSelectingBuildingLocation || appMode !== "evacuation" || !location) return;
   const lat = location.lat();
   const lng = location.lng();
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -1981,6 +1987,7 @@ function selectBuildingLocation(location) {
 
 // 施設名と地図で選んだ位置から、共有避難ビルを追加する。
 async function addEvacuationBuilding() {
+  if (!IS_BUILDING_ADMIN_VIEW) return;
   const nameElement = document.getElementById("building-name");
   const statusElement = document.getElementById("building-status");
 
@@ -2078,7 +2085,7 @@ function setupBuildingForm() {
   }
 
   document.getElementById("pick-building-location").addEventListener("click", () => {
-    if (appMode !== "evacuation") return;
+    if (!IS_BUILDING_ADMIN_VIEW || appMode !== "evacuation") return;
     isSelectingBuildingLocation = true;
     const status = document.getElementById("building-status");
     if (status) status.textContent = "";
