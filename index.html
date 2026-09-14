@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>津波避難シミュレーション</title>
+  <style>
+    :root{
+      /* JSで実測して更新するが、初期値も入れておく */
+      --header-h: 64px;
+      --footer-h: 24px; /* 下段footerの高さ */
+      --info-h: 150px;  /* JSで「最短の避難先」欄の高さを実測 */
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, Arial, sans-serif;
+      color: #111;
+    }
+
+    /* ヘッダー（青帯）— 画面上部に固定 */
+    header#app-header {
+      background-color: #00bfff;
+      color: #fff;
+      padding: 6px 16px;
+      text-align: center;
+      position: fixed;   /* ← 固定 */
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;     /* 地図や吹き出しより前面に */
+    }
+    header#app-header h1 {
+      font-size: 1.1em;
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: .5px;
+    }
+    header#app-header .subtext {
+      font-size: 0.75em;
+      margin-top: 2px;
+      color: #f0f8ff;
+    }
+    /* ヘッダー右上の言語トグル */
+    .header-actions{
+      position:absolute;
+      right:12px;
+      top:50%;
+      transform:translateY(-50%);
+      display:flex;
+      gap:8px;
+    }
+    #lang-toggle{
+      background:#eee; color:#333;
+      border:1px solid #ccc; border-radius:8px;
+      padding:6px 12px; font-weight:600; font-size:14px;
+      line-height:1; cursor:pointer; transition:filter .15s;
+    }
+    #lang-toggle:hover{ filter:brightness(0.96); }
+    #lang-toggle:focus-visible{ outline:2px solid #333; outline-offset:2px; }
+
+    /* 全体レイアウト：ヘッダー分の余白を上に確保 */
+    .container {
+      height: 100vh;
+      padding-top: var(--header-h);  /* ヘッダー高さぶん下げる */
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+    .map-area {
+      flex: 1 1 auto;
+      min-height: 0;
+      position: relative;
+    }
+    #map { position: absolute; inset: 0; }
+
+    /* 避難モード / 地域情報投稿モード */
+   #mode-switch {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    z-index: 750;
+    display: flex;
+    gap: 8px;
+    }
+
+    .mode-button {
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    background: #fff;
+    color: #333;
+    padding: 9px 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
+    }
+
+    .mode-button:hover {
+    filter: brightness(.96);
+    }
+
+    .mode-button.active {
+    background: #006fd6;
+    color: #fff;
+    border-color: #006fd6;
+    }
+
+    #community-report-legend, #destination-map-legend {
+      position: absolute;
+      left: 16px;
+      bottom: calc(var(--info-h) + var(--footer-h) + 12px);
+      z-index: 720;
+      padding: 10px 12px;
+      border: 1px solid rgba(0, 0, 0, .18);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .96);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+      font-size: .85rem;
+    }
+    #community-report-legend[hidden], #destination-map-legend[hidden] { display: none; }
+    #community-report-legend strong, #destination-map-legend strong { display: block; margin-bottom: 5px; }
+    .community-report-legend-item { display: flex; align-items: center; gap: 7px; margin-top: 4px; }
+    .community-report-legend-dot { width: 12px; height: 12px; flex-shrink: 0; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); }
+    .community-report-legend-dot.use { background: #16833b; }
+    .community-report-legend-dot.depends { background: #e68a00; }
+    .community-report-legend-dot.avoid { background: #c62828; }
+    .community-report-legend-dot.tsunami-building { background: #e67e00; }
+    .community-report-legend-dot.emergency-place { background: #006fd6; }
+    .community-report-legend-dot.shelter { background: #0c8a41; }
+    .community-report-legend-dot.shared { background: #6f42c1; }
+    .community-report-legend-dot.review { background: #6c757d; }
+    #refresh-community-reports { width: 100%; min-height: 36px; margin-top: 9px; border: 1px solid #006fd6; border-radius: 6px; background: #fff; color: #005aaa; font: inherit; cursor: pointer; }
+    #refresh-community-reports:disabled { opacity: .55; cursor: wait; }
+    #community-report-refresh-status { min-height: 1.3em; margin: 6px 0 0; font-size: .8rem; }
+    #community-report-refresh-status:empty { display: none; }
+
+    @media (max-width: 768px) {
+    #mode-switch {
+      top: 8px;
+      left: 10px;
+      right: 10px;
+    }
+
+    #community-report-legend, #destination-map-legend {
+      left: 10px;
+      bottom: calc(var(--info-h) + var(--footer-h) + 8px);
+    }
+
+    .mode-button {
+      flex: 1;
+      padding: 8px 8px;
+      font-size: 0.85rem;
+    }
+    }
+
+    /* 地域情報の質問ダイアログ */
+    #report-dialog {
+      width: min(360px, calc(100% - 32px));
+      max-height: calc(100% - 32px);
+      box-sizing: border-box;
+      overflow: auto;
+      padding: 20px;
+      border: 1px solid #aaa;
+      border-radius: 10px;
+      color: #111;
+      background: #fff;
+    }
+    #report-dialog::backdrop { background: rgba(0, 0, 0, .4); }
+    #report-question { margin: 0 0 12px; font-size: 1.1rem; }
+    #report-dialog button {
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #888;
+      border-radius: 6px;
+      background: #fff;
+      color: #111;
+      font: inherit;
+      cursor: pointer;
+    }
+    #report-dialog button[aria-pressed="true"] {
+      background: #006fd6;
+      border-color: #006fd6;
+      color: #fff;
+    }
+    #report-dialog button:focus-visible { outline: 3px solid #006fd6; outline-offset: 2px; }
+    #report-review-title { margin: 0 0 12px; font-size: 1.1rem; }
+    #report-review-step dt { margin-top: 12px; font-weight: 600; }
+    #report-review-step dd { margin: 4px 0 16px; overflow-wrap: anywhere; }
+    #report-dialog #report-review-button { background: #006fd6; color: #fff; border-color: #006fd6; }
+    #report-dialog button:disabled { opacity: .5; cursor: not-allowed; }
+    #report-dialog #report-submit-button { background: #006fd6; color: #fff; border-color: #006fd6; }
+    #report-submit-status { line-height: 1.5; font-weight: 600; }
+    #report-submit-status:empty { display: none; }
+    #report-comment-label { display: block; margin-top: 14px; font-weight: 600; }
+    #report-comment { box-sizing: border-box; width: 100%; margin-top: 6px; padding: 9px; font: inherit; font-size: 16px; border: 1px solid #888; border-radius: 6px; resize: vertical; }
+    #report-review-comment { white-space: pre-wrap; }
+    #report-reasons, #report-conditions { margin: 14px 0; padding: 10px; border: 1px solid #aaa; border-radius: 6px; min-width: 0; }
+    #report-reasons legend, #report-conditions legend { font-weight: 600; }
+    #report-reason-options label, #report-condition-options label { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+    #report-reason-options input, #report-condition-options input { width: 20px; height: 20px; flex-shrink: 0; }
+    #report-reason-options label[hidden] { display: none; }
+    #report-note { font-size: .9rem; }
+    #report-selection { margin: 14px 0; font-weight: 600; line-height: 1.5; }
+    .community-report-popup { max-width: 280px; color: #111; font-size: 14px; line-height: 1.5; }
+    .community-report-popup h3 { margin: 0 0 8px; font-size: 1rem; }
+    .community-report-popup dl { margin: 0; }
+    .community-report-popup dt { margin-top: 7px; font-weight: 700; }
+    .community-report-popup dd { margin: 1px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .community-report-popup-edit { width: 100%; min-height: 40px; margin-top: 12px; border: 1px solid #006fd6; border-radius: 6px; background: #006fd6; color: #fff; font: inherit; cursor: pointer; }
+    .community-report-editor label, .community-report-editor legend { font-weight: 700; }
+    .community-report-editor select, .community-report-editor textarea { width: 100%; box-sizing: border-box; margin-top: 5px; padding: 8px; border: 1px solid #777; border-radius: 6px; font: inherit; }
+    .community-report-editor fieldset { margin: 10px 0 0; padding: 8px; border: 1px solid #aaa; border-radius: 6px; }
+    .community-report-editor-option { display: flex; align-items: center; gap: 7px; min-height: 36px; font-weight: 400 !important; }
+    .community-report-editor-option input { width: 18px; height: 18px; flex-shrink: 0; }
+    .community-report-editor-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .community-report-editor-actions button { min-height: 40px; margin-top: 10px; border: 1px solid #777; border-radius: 6px; background: #fff; font: inherit; cursor: pointer; }
+    .community-report-editor-actions .community-report-editor-save { border-color: #006fd6; background: #006fd6; color: #fff; }
+    .community-report-editor-delete { width: 100%; min-height: 40px; margin-top: 8px; border: 1px solid #b00020; border-radius: 6px; background: #fff; color: #b00020; font: inherit; cursor: pointer; }
+    .community-report-editor-status { min-height: 1.3em; margin: 8px 0 0; color: #b00020; font-size: .9rem; }
+
+    /* 避難ビル追加フォーム：地図の左上に重ねて表示 */
+    #building-form {
+      position: absolute;
+      top: 70px;
+      left: 16px;
+      z-index: 700;
+      width: min(360px, calc(100% - 32px));
+      max-height: calc(100% - var(--info-h) - var(--footer-h) - 32px);
+      overflow: auto;
+      box-sizing: border-box;
+      padding: 14px 16px;
+      border: 1px solid rgba(0, 0, 0, .18);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .96);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .22);
+    }
+
+    #building-form[hidden] { display: none; }
+    #pick-building-location, #cancel-building-location { margin-top: 12px; padding: 10px; min-height: 44px; font: inherit; cursor: pointer; }
+    #pick-building-location[aria-pressed="true"] { background: #006fd6; color: #fff; }
+    #add-building-button:disabled { opacity: .5; cursor: not-allowed; }
+    #building-location-status { font-size: .9rem; line-height: 1.5; }
+    #building-form summary {
+      cursor: pointer;
+      font-size: 1.05rem;
+      font-weight: 700;
+      user-select: none;
+    }
+
+    #building-form[open] summary {
+      margin-bottom: 12px;
+    }
+
+    #building-form label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    #building-form input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 9px;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+
+    #add-building-button {
+      margin-top: 14px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #006fd6;
+      color: #fff;
+      font-size: .95rem;
+      cursor: pointer;
+    }
+
+    #add-building-button:hover {
+      filter: brightness(.95);
+    }
+
+    #building-status {
+      margin: 10px 0 0;
+      min-height: 1.3em;
+      font-size: .9rem;
+    }
+
+    /* 避難ビル一覧：地図の右上に重ねて表示 */
+    #building-list-panel {
+      position: absolute;
+      top: 70px;
+      right: 16px;
+      z-index: 710;
+      width: min(360px, calc(100% - 32px));
+      max-height: calc(100% - 70px - var(--info-h) - var(--footer-h) - 12px);
+      overflow: auto;
+      box-sizing: border-box;
+      padding: 14px 16px;
+      border: 1px solid rgba(0, 0, 0, .18);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .96);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .22);
+    }
+    #building-list-panel > summary { cursor: pointer; font-size: 1.05rem; font-weight: 700; user-select: none; }
+    #building-list-panel[open] > summary { margin-bottom: 10px; }
+    #building-list-count { margin: 0 0 8px; font-size: .9rem; }
+    .destination-filter-label { display: block; margin: 0 0 5px; font-size: .9rem; font-weight: 700; }
+    #destination-type-filter { width: 100%; min-height: 40px; margin: 0 0 10px; padding: 7px 9px; border: 1px solid #777; border-radius: 6px; background: #fff; font: inherit; }
+    #destination-type-guide { margin: 0 0 10px; padding: 9px 10px; border: 1px solid #b8cbe0; border-radius: 7px; background: #f4f8fc; font-size: .85rem; }
+    #destination-type-guide summary { cursor: pointer; color: #174f85; font-weight: 700; user-select: none; }
+    #destination-type-guide[open] summary { margin-bottom: 7px; }
+    #destination-type-guide p { margin: 6px 0 0; line-height: 1.45; }
+    .destination-guide-row { display: flex; align-items: flex-start; gap: 7px; }
+    .destination-guide-swatch { width: 14px; height: 14px; flex: 0 0 14px; margin-top: 3px; border: 2px solid #fff; border-radius: 4px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .28); }
+    .destination-guide-swatch.tsunami-building { background: #e67e00; }
+    .destination-guide-swatch.emergency-place { background: #006fd6; }
+    .destination-guide-swatch.shelter { background: #0c8a41; }
+    .destination-guide-swatch.shared { background: #6f42c1; }
+    .destination-guide-swatch.review { background: #6c757d; }
+    #destination-type-guide .destination-type-note { padding-top: 6px; border-top: 1px solid #ccd8e4; color: #555; }
+    #refresh-community-buildings { width: 100%; min-height: 40px; margin: 0 0 8px; border: 1px solid #006fd6; border-radius: 6px; background: #fff; color: #005aaa; font: inherit; cursor: pointer; }
+    #refresh-community-buildings:disabled { opacity: .55; cursor: wait; }
+    #building-refresh-status { min-height: 1.3em; margin: 0 0 8px; font-size: .85rem; }
+    #building-refresh-status:empty { display: none; }
+    #building-list { display: grid; gap: 8px; }
+    .building-list-item { padding: 10px; border: 1px solid #ccc; border-radius: 7px; background: #fff; }
+    .building-list-name { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+    .building-list-source { display: inline-block; margin-top: 5px; padding: 2px 7px; border-radius: 999px; background: #e8f2ff; color: #174f85; font-size: .8rem; }
+    .building-list-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .building-list-type { display: inline-block; padding: 3px 7px; border-radius: 5px; background: #fff0dc; color: #7a4100; font-size: .78rem; font-weight: 700; }
+    .building-list-type.shelter { background: #e3f4e8; color: #176b35; }
+    .building-list-type.review { background: #eee; color: #555; }
+    .building-list-map-button { width: 100%; min-height: 40px; margin-top: 8px; border: 1px solid #777; border-radius: 6px; background: #fff; font: inherit; cursor: pointer; }
+    .building-list-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .building-list-actions .building-list-map-button { min-width: 0; }
+    .building-list-edit-button, .building-list-delete-button, .building-list-save-button, .building-list-cancel-button { width: 100%; min-height: 40px; margin-top: 8px; border: 1px solid #777; border-radius: 6px; background: #fff; font: inherit; cursor: pointer; }
+    .building-list-delete-button { grid-column: 1 / -1; border-color: #b00020; color: #b00020; }
+    .building-list-edit-input { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 9px; border: 1px solid #777; border-radius: 6px; font: inherit; }
+    .building-list-edit-label { display: block; font-weight: 700; }
+    .building-list-edit-status { min-height: 1.3em; margin: 7px 0 0; color: #b00020; font-size: .85rem; }
+    .building-list-empty { margin: 0; color: #555; }
+
+/* 上段フッター（info-area）— はみ出し根絶 */
+.info-area {
+  position: fixed;
+  left: 0;
+  right: 0; /* ← 100vwを使わず左右0で固定 */
+  bottom: var(--footer-h, 24px);
+  box-sizing: border-box;
+  background-color: #e0e0e0;
+  /* 端末の安全域も込みでインセット。paddingは内側で確保 */
+  padding: 8px 12px;
+  font-size: 0.85em;
+  z-index: 900;
+  box-shadow: 0 0 10px rgba(0,0,0,.3);
+}
+
+/* 右端の見切れを防ぐための内側ラッパー（任意だが推奨） */
+.info-area .inner {
+  max-width: 960px;          /* デスクトップで広がり過ぎない */
+  margin: 0 auto;            /* 中央寄せ */
+  padding-right: max(12px, env(safe-area-inset-right)); /* iOS安全域対策 */
+  padding-left:  max(12px, env(safe-area-inset-left));
+}
+
+/* ボタン行：2等分。minmax(0,1fr) で子要素の最小幅を0に固定し溢れ防止 */
+.button-row {
+  display: grid; 
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* ← これが効きます */
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* ボタン：必ず親の中に収める（長い日本語/英語でもOK） */
+.button-row button {
+  width: 100%;
+  min-width: 0;               /* ← min-contentによるはみ出しを無効化 */
+  white-space: normal;        /* 折り返し許可 */
+  overflow-wrap: anywhere;    /* スペース無しでもどこでも折り返す */
+  line-height: 1.25;
+  font-size: 0.95em;
+  padding: 10px 10px;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  transition: filter .15s, background .15s;
+}
+
+/* ごく狭い幅では1列に積む */
+@media (max-width: 380px) {
+  .button-row { grid-template-columns: 1fr; }
+}
+    button.use-location { background-color: #007bff; }
+    button.use-location:hover { filter:brightness(0.95); }
+    button.launch-gmap { background-color: #28a745; }
+    button.launch-gmap:hover { filter:brightness(0.95); }
+
+    /* 下段 footer（作成者表示） */
+    footer {
+      background-color: #fff;
+      color: gray;
+      text-align: center;
+      padding: 3px;
+      font-size: 0.6em;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+      z-index: 800;
+      height: var(--footer-h);      /* レイアウト計算用 */
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 768px) {
+      header#app-header h1 { font-size: 1em; }
+      header#app-header .subtext { font-size: 0.7em; }
+      .info-area { font-size: 0.85em; padding: 8px 12px; width: 100vw; }
+      .button-row { gap: 6px; }
+
+      #building-form {
+        top: 60px;
+        left: 10px;
+        width: calc(100% - 20px);
+        max-height: calc(100% - var(--info-h) - var(--footer-h) - 20px);
+      }
+
+      #building-list-panel {
+        top: auto;
+        right: 10px;
+        bottom: calc(var(--info-h) + var(--footer-h) + 10px);
+        width: calc(100% - 20px);
+        max-height: calc(100% - var(--info-h) - var(--footer-h) - 80px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 固定ヘッダー -->
+  <header id="app-header">
+    <h1 data-i18n="header_title">津波避難シミュレーション</h1>
+    <p class="subtext" data-i18n="header_subtext">📍 地図をクリックすると避難経路を表示します</p>
+    <div class="header-actions">
+      <button id="lang-toggle" type="button" aria-label="Switch language">EN</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="map-area">
+      <div id="map" role="application" aria-label="map"></div>
+
+      <!-- 避難機能と地域情報投稿機能の切り替え -->
+      <div id="mode-switch">
+        <button
+          id="evacuation-mode-button"
+          class="mode-button active"
+          type="button"
+          aria-pressed="true"
+          data-i18n="mode_evacuate"
+        >
+          避難する
+        </button>
+
+        <button
+          id="report-mode-button"
+          class="mode-button"
+          type="button"
+          aria-pressed="false"
+          data-i18n="mode_report"
+        >
+          地域情報を投稿
+        </button>
+      </div>
+
+      <section id="destination-map-legend" aria-labelledby="destination-map-legend-title">
+        <strong id="destination-map-legend-title" data-i18n="destination_map_legend_title">避難先マーカー</strong>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot tsunami-building" aria-hidden="true"></span><span data-i18n="building_type_tsunami_building">津波避難ビル</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot emergency-place" aria-hidden="true"></span><span data-i18n="building_type_emergency_place">指定緊急避難場所</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot shelter" aria-hidden="true"></span><span data-i18n="building_type_also_shelter">指定避難所を兼ねる</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot shared" aria-hidden="true"></span><span data-i18n="building_list_shared">共有投稿（公式未確認）</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot review" aria-hidden="true"></span><span data-i18n="building_type_review_needed">区分確認中</span></div>
+      </section>
+
+      <section id="community-report-legend" hidden aria-labelledby="community-report-legend-title">
+        <strong id="community-report-legend-title" data-i18n="report_legend_title">投稿マーカー</strong>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot use" aria-hidden="true"></span><span data-i18n="report_use">使いたい</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot depends" aria-hidden="true"></span><span data-i18n="report_depends">状況による</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot avoid" aria-hidden="true"></span><span data-i18n="report_avoid">できれば避けたい</span></div>
+        <button id="refresh-community-reports" type="button" disabled data-i18n="report_refresh">最新の投稿を更新</button>
+        <p id="community-report-refresh-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <!-- 公式・共有投稿・このブラウザで追加した避難ビルの一覧 -->
+      <details id="building-list-panel">
+        <summary data-i18n="building_list_title">避難先一覧</summary>
+        <p id="building-list-count" aria-live="polite">読み込み中…</p>
+        <label class="destination-filter-label" for="destination-type-filter" data-i18n="destination_filter_label">種類で絞り込む</label>
+        <select id="destination-type-filter">
+          <option value="all" data-i18n="destination_filter_all">すべて</option>
+          <option value="tsunami_building" data-i18n="building_type_tsunami_building">津波避難ビル</option>
+          <option value="emergency_place" data-i18n="building_type_emergency_place">指定緊急避難場所</option>
+          <option value="shelter" data-i18n="building_type_also_shelter">指定避難所を兼ねる</option>
+          <option value="review" data-i18n="building_type_review_needed">区分確認中</option>
+          <option value="user_added" data-i18n="destination_filter_user_added">利用者が追加</option>
+        </select>
+        <details id="destination-type-guide">
+          <summary data-i18n="destination_guide_title">避難先の種類</summary>
+          <p class="destination-guide-row"><span class="destination-guide-swatch tsunami-building" aria-hidden="true"></span><span data-i18n="destination_guide_tsunami_building">オレンジ：津波から緊急的・一時的に避難する津波避難ビルです。</span></p>
+          <p class="destination-guide-row"><span class="destination-guide-swatch emergency-place" aria-hidden="true"></span><span data-i18n="destination_guide_emergency">青：津波に対応する指定緊急避難場所です。</span></p>
+          <p class="destination-guide-row"><span class="destination-guide-swatch shelter" aria-hidden="true"></span><span data-i18n="destination_guide_shelter">緑：指定避難所も兼ねる施設です。危険が去った後などに一定期間滞在できます。</span></p>
+          <p class="destination-guide-row"><span class="destination-guide-swatch shared" aria-hidden="true"></span><span data-i18n="destination_guide_shared">紫：利用者が追加した、公式未確認の共有投稿です。</span></p>
+          <p class="destination-guide-row destination-type-note"><span class="destination-guide-swatch review" aria-hidden="true"></span><span data-i18n="destination_guide_notice">灰色：「区分確認中」の施設です。現行の公式情報との再確認が必要です。</span></p>
+        </details>
+        <button id="refresh-community-buildings" type="button" data-i18n="building_refresh">共有情報を更新</button>
+        <p id="building-refresh-status" role="status" aria-live="polite"></p>
+        <div id="building-list"></div>
+      </details>
+
+      <!-- 地図上に重ねる、折りたたみ可能な避難ビル追加フォーム -->
+      <details id="building-form" open>
+        <summary>避難ビルの追加</summary>
+
+        <label for="building-name">施設名</label>
+        <input
+          id="building-name"
+          type="text"
+          placeholder="例：○○市民会館"
+        >
+
+        <button id="pick-building-location" type="button" aria-pressed="false">地図で位置を選ぶ</button>
+        <button id="cancel-building-location" type="button" hidden>位置選択をやめる</button>
+        <p id="building-location-status" aria-live="polite">位置は未選択です。</p>
+
+        <button id="add-building-button" type="button" disabled>
+          避難ビルを追加
+        </button>
+
+        <p id="building-status" aria-live="polite"></p>
+      </details>
+
+    </div>
+
+    <!-- 上段フッター（info-area） -->
+    <div class="info-area">
+      <div class="inner"><!-- ← 追加 -->
+        <h2 data-i18n="info_title">最短の避難先：</h2>
+        <p id="nearest-destination" data-i18n="info_hint">クリックして確認してください</p>
+        <div class="button-row">
+          <button class="use-location" onclick="useCurrentLocation()" data-i18n="btn_use_current">
+            現在地から避難
+          </button>
+          <button class="launch-gmap" onclick="launchGoogleMap()" data-i18n="btn_open_gmaps">
+            Googleマップで開く
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 地域情報の回答・確認・Supabaseへの投稿 -->
+  <dialog id="report-dialog" aria-labelledby="report-question" aria-describedby="report-note">
+    <div id="report-answer-step">
+      <h2 id="report-question" data-i18n="report_question">津波避難時、この地点付近の道を使いたいですか？</h2>
+      <button type="button" data-report-choice="use" aria-pressed="false" data-i18n="report_use">使いたい</button>
+      <button type="button" data-report-choice="depends" aria-pressed="false" data-i18n="report_depends">状況による</button>
+      <button type="button" data-report-choice="avoid" aria-pressed="false" data-i18n="report_avoid">できれば避けたい</button>
+      <p id="report-selection" role="status" aria-live="polite" aria-atomic="true">回答を選んでください。</p>
+      <fieldset id="report-reasons">
+        <legend data-i18n="report_reasons_label">理由（任意・複数選択可）</legend>
+        <div id="report-reason-options"></div>
+      </fieldset>
+      <fieldset id="report-conditions" hidden>
+        <legend data-i18n="report_conditions_label">利用したい条件（任意・複数選択可）</legend>
+        <div id="report-condition-options"></div>
+      </fieldset>
+      <label id="report-comment-label" for="report-comment" data-i18n="report_comment_label">補足コメント（任意・500文字まで）</label>
+      <textarea id="report-comment" rows="3" maxlength="500" data-i18n="report_comment_placeholder" placeholder="例：道幅が狭く、すれ違いにくい場所があります。"></textarea>
+      <button id="report-review-button" type="button" disabled data-i18n="report_review">内容を確認</button>
+    </div>
+    <div id="report-review-step" hidden>
+      <h2 id="report-review-title" tabindex="-1" data-i18n="report_review_title">投稿内容の確認</h2>
+      <dl>
+        <dt data-i18n="report_review_location">地点（緯度・経度）</dt>
+        <dd id="report-review-location"></dd>
+        <dt data-i18n="report_review_answer">回答</dt>
+        <dd id="report-review-answer"></dd>
+        <dt id="report-review-reasons-label" data-i18n="report_reasons">理由</dt>
+        <dd id="report-review-reasons"></dd>
+        <dt id="report-review-conditions-label" data-i18n="report_conditions" hidden>利用したい条件</dt>
+        <dd id="report-review-conditions" hidden></dd>
+        <dt data-i18n="report_comment">補足コメント</dt>
+        <dd id="report-review-comment"></dd>
+      </dl>
+      <button id="report-submit-button" type="button">投稿する</button>
+      <button id="report-edit-button" type="button" data-i18n="report_edit">修正する</button>
+    </div>
+    <p id="report-submit-status" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></p>
+    <p id="report-note" data-i18n="report_note">「投稿する」を押すと、地点・回答・理由・条件・コメントを保存します。</p>
+    <button id="report-cancel" type="button" data-i18n="report_cancel">キャンセル</button>
+  </dialog>
+
+  <!-- 下段footer（作成者） -->
+  <footer>都市地域デザイン学研究室</footer>
+
+  <!-- アプリ本体 -->
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ <script src="./supabase_reports.js?v=20260910-6"></script>
+ <script src="./supabase_buildings.js?v=20260910-1"></script>
+ <script src="./map_eva.js?v=20260911-13"></script>
+
+  <!-- 固定欄の高さを実測し、CSS変数を更新 -->
+  <script>
+    function updateLayoutHeightVars(){
+      const headerHeight =
+        document.getElementById('app-header')?.offsetHeight || 64;
+      const infoHeight =
+        document.querySelector('.info-area')?.offsetHeight || 150;
+
+      document.documentElement.style.setProperty(
+        '--header-h',
+        headerHeight + 'px'
+      );
+      document.documentElement.style.setProperty(
+        '--info-h',
+        infoHeight + 'px'
+      );
+    }
+
+    window.addEventListener('load', updateLayoutHeightVars);
+    window.addEventListener('resize', updateLayoutHeightVars);
+  </script>
+
+  <!-- Google Maps（APIキー差し替え）-->
+    <script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDHARZBVr3rzCr_ejyqvMVxoU-V9VfKnfw&language=ja&callback=initMap">
+    </script> 
+</body>
+</html>
