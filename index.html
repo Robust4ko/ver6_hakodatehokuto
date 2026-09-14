@@ -493,6 +493,21 @@
       #building-list-panel[open] > summary {
         font-size: 1rem;
       }
+
+      body.building-form-open .info-area,
+      body.building-form-open footer {
+        display: none;
+      }
+
+      body.building-form-open #building-form[open] {
+        bottom: auto;
+        max-height: calc(100% - 74px);
+      }
+
+      body.building-location-selecting #building-form:not([open]) {
+        border: 2px solid #006fd6;
+        background: #eef7ff;
+      }
     }
   </style>
 </head>
@@ -667,7 +682,7 @@
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <script src="./supabase_reports.js?v=20260910-6"></script>
  <script src="./supabase_buildings.js?v=20260910-1"></script>
- <script src="./map_eva.js?v=20260911-13"></script>
+ <script src="./map_eva.js?v=20260914-1"></script>
 
   <!-- 固定欄の高さを実測し、CSS変数を更新 -->
   <script>
@@ -703,6 +718,9 @@
     }
 
     function closeOtherMapPanel(event){
+      const buildingForm = document.getElementById('building-form');
+      document.body.classList.toggle('building-form-open', buildingForm.open);
+
       if (!event.currentTarget.open) return;
       const otherId = event.currentTarget.id === 'building-form'
         ? 'building-list-panel'

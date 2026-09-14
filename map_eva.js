@@ -1893,6 +1893,11 @@ function updateBuildingLocationUI() {
   const cancel = document.getElementById("cancel-building-location");
   const add = document.getElementById("add-building-button");
   const status = document.getElementById("building-location-status");
+  const formSummary = document.querySelector("#building-form > summary");
+  document.body.classList.toggle("building-location-selecting", isSelectingBuildingLocation);
+  if (formSummary) {
+    formSummary.textContent = isSelectingBuildingLocation ? "地図をタップ" : "避難ビルの追加";
+  }
   if (pick) {
     pick.setAttribute("aria-pressed", String(isSelectingBuildingLocation));
     pick.textContent = buildingLocation ? "地図で位置を選び直す" : "地図で位置を選ぶ";
@@ -1924,6 +1929,9 @@ function selectBuildingLocation(location) {
   });
   isSelectingBuildingLocation = false;
   updateBuildingLocationUI();
+  if (window.matchMedia("(max-width: 768px)").matches) {
+    document.getElementById("building-form").open = true;
+  }
 }
 
 // 施設名と地図で選んだ位置から、共有避難ビルを追加する。
@@ -2030,6 +2038,9 @@ function setupBuildingForm() {
     const status = document.getElementById("building-status");
     if (status) status.textContent = "";
     updateBuildingLocationUI();
+    if (window.matchMedia("(max-width: 768px)").matches) {
+      document.getElementById("building-form").open = false;
+    }
   });
   document.getElementById("cancel-building-location").addEventListener("click", clearBuildingLocation);
   document.getElementById("refresh-community-buildings")?.addEventListener("click", refreshCommunityBuildings);
