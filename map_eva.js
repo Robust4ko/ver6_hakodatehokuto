@@ -20,6 +20,9 @@ let buildingLocationMarker = null;
 let reportMarker = null; // 投稿対象の仮ピン（保存しない）
 let communityReportMarkers = []; // Supabaseに保存済みの投稿地点
 let communityReportInfoWindow = null;
+let touristSpots = [];
+let touristSpotMarkers = [];
+let touristSpotInfoWindow = null;
 let communityCurrentUserId = null;
 let reportDraft = null; // 確認中の地点・回答。投稿するまではページ内だけで保持する。
 let reportSubmitState = "idle"; // idle / sending / success / error / uncertain
@@ -51,12 +54,20 @@ const I18N = {
     header_title: "津波避難シミュレーション",
     header_subtext: "📍 地図をクリックすると避難経路を表示します",
     header_report_subtext: "📍 投稿する地点をタップしてください",
+    header_tourism_subtext: "📍 函館の主な観光地を地図で確認します",
     info_title: "最短の避難先：",
     info_hint: "クリックして確認してください",
     btn_use_current: "現在地から避難",
     btn_open_gmaps: "Googleマップで開く",
     mode_evacuate: "避難する",
     mode_report: "地域情報を投稿",
+    mode_tourism: "観光マップ",
+    tourism_legend_title: "観光地マーカー",
+    tourism_marker_label: "観光地",
+    tourism_popup_area: "エリア",
+    tourism_popup_category: "種類",
+    tourism_popup_official: "函館市公式観光サイトで見る",
+    tourism_load_error: "観光地データを読み込めませんでした。",
     report_question: "津波避難時、この地点付近の道を使いたいですか？",
     report_note: "「投稿する」を押すと、地点・回答・理由・条件・コメントを保存します。",
     report_comment: "補足コメント",
@@ -140,6 +151,10 @@ const I18N = {
     destination_guide_shared: "紫：利用者が追加した、公式未確認の共有投稿です。",
     destination_guide_notice: "灰色：「区分確認中」の施設です。現行の公式情報との再確認が必要です。",
     destination_map_legend_title: "避難先マーカー",
+    destination_marker_all: "避難先",
+    destination_marker_shelter: "黄色の太枠：津波後も利用できる避難所",
+    destination_guide_all_green: "緑：津波から避難するための避難先です。",
+    destination_guide_shelter_border: "黄色の太枠：津波の危険が去った後も、指定避難所として一定期間滞在できる施設です。",
     building_type_tsunami_building: "津波避難ビル",
     building_type_emergency_place: "指定緊急避難場所",
     building_type_also_shelter: "指定避難所を兼ねる",
@@ -198,12 +213,20 @@ const I18N = {
     header_title: "Tsunami Evacuation Simulation",
     header_subtext: "📍 Click the map to show an evacuation route",
     header_report_subtext: "📍 Tap a location to report",
+    header_tourism_subtext: "📍 View major tourist spots in Hakodate",
     info_title: "Nearest shelter:",
     info_hint: "Tap the map to start",
     btn_use_current: "Evacuate from current location",
     btn_open_gmaps: "Open in Google Maps",
     mode_evacuate: "Evacuate",
     mode_report: "Report local info",
+    mode_tourism: "Tourism map",
+    tourism_legend_title: "Tourist spot markers",
+    tourism_marker_label: "Tourist spot",
+    tourism_popup_area: "Area",
+    tourism_popup_category: "Category",
+    tourism_popup_official: "View on the official Hakodate tourism site",
+    tourism_load_error: "Could not load tourist spot data.",
     report_question: "Would you want to use the roads near this point during a tsunami evacuation?",
     report_note: "Press Submit to save this location, answer, reasons, conditions and comment.",
     report_comment: "Additional comment",
@@ -287,6 +310,10 @@ const I18N = {
     destination_guide_shared: "Purple: A user-added shared submission that has not been officially verified.",
     destination_guide_notice: "Gray: Classification under review. Current official information still needs to be confirmed.",
     destination_map_legend_title: "Evacuation markers",
+    destination_marker_all: "Evacuation destination",
+    destination_marker_shelter: "Yellow border: shelter available after the tsunami",
+    destination_guide_all_green: "Green: an evacuation destination for escaping a tsunami.",
+    destination_guide_shelter_border: "Yellow border: a designated shelter where people can stay after the tsunami danger has passed.",
     building_type_tsunami_building: "Tsunami evacuation building",
     building_type_emergency_place: "Designated emergency evacuation place",
     building_type_also_shelter: "Also a designated shelter",
@@ -379,6 +406,7 @@ function applyI18nToUI(){
   updateReportSelection();
   updateBuildingLocationUI();
   renderBuildingList();
+  updateTouristSpotLanguage();
   const btn = document.getElementById("lang-toggle");
   if (btn){
     btn.textContent = (LANG === "ja" ? "EN" : "日");
@@ -482,6 +510,7 @@ function initMap() {
   // 避難先データと、ブラウザに保存した追加ビルをまとめて読み込む
   loadAllDestinations();
   loadCommunityReportMarkers();
+  loadTouristSpots();
 
   // 避難ビル追加フォームのボタンを有効にする
   setupBuildingForm();
@@ -551,26 +580,120 @@ function loadEvacPoints() {
     .catch((error) => displayMessage("水平避難ポイントの読み込みエラー: " + error));
 }
 
+/* ========== 観光地データとマーカー ========== */
+function getTouristSpotText(spot, field) {
+  if (!spot) return "";
+  const japanese = spot[field] || "";
+  const english = spot[field + "_en"] || japanese;
+  return LANG === "en" ? english : japanese;
+}
+
+async function loadTouristSpots() {
+  try {
+    const response = await fetch("./tourist_spots.json?v=20260914-1");
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const data = await response.json();
+    touristSpots = data.filter((spot) =>
+      spot &&
+      spot.location &&
+      Number.isFinite(Number(spot.location.lat)) &&
+      Number.isFinite(Number(spot.location.lng))
+    );
+
+    touristSpotMarkers.forEach((marker) => marker.setMap(null));
+    touristSpotMarkers = touristSpots.map((spot) => {
+      const marker = new google.maps.Marker({
+        position: {
+          lat: Number(spot.location.lat),
+          lng: Number(spot.location.lng),
+        },
+        map: appMode === "tourism" ? map : null,
+        title: getTouristSpotText(spot, "name"),
+        clickable: true,
+        icon: {
+          url: "./tourist_spot.svg",
+          size: new google.maps.Size(32, 38),
+          scaledSize: new google.maps.Size(32, 38),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(16, 36),
+        },
+        optimized: false,
+        zIndex: 850,
+      });
+      marker.__touristSpot = spot;
+      marker.addListener("click", () => {
+        if (appMode === "tourism") openTouristSpotPopup(spot, marker);
+      });
+      return marker;
+    });
+    if (appMode === "tourism") fitTouristSpotsToMap();
+  } catch (error) {
+    console.error("観光地データの読み込みエラー:", error);
+    if (appMode === "tourism") displayMessage(t("tourism_load_error"));
+  }
+}
+
+function setTouristSpotMarkersVisible(visible) {
+  touristSpotMarkers.forEach((marker) => marker.setMap(visible ? map : null));
+  if (visible) {
+    fitTouristSpotsToMap();
+  } else {
+    touristSpotInfoWindow?.close();
+  }
+}
+
+function fitTouristSpotsToMap() {
+  if (!map || touristSpotMarkers.length === 0) return;
+  const bounds = new google.maps.LatLngBounds();
+  touristSpotMarkers.forEach((marker) => bounds.extend(marker.getPosition()));
+  map.fitBounds(bounds, { top: 110, right: 35, bottom: 170, left: 35 });
+}
+
+function updateTouristSpotLanguage() {
+  touristSpotMarkers.forEach((marker) => {
+    marker.setTitle(getTouristSpotText(marker.__touristSpot, "name"));
+  });
+  touristSpotInfoWindow?.close();
+}
+
+function openTouristSpotPopup(spot, marker) {
+  const name = getTouristSpotText(spot, "name");
+  const area = getTouristSpotText(spot, "area");
+  const category = getTouristSpotText(spot, "category");
+  const address = getTouristSpotText(spot, "address");
+  const sourceUrl = /^https:\/\/www\.hakobura\.jp\//.test(spot.source_url || "")
+    ? spot.source_url
+    : "https://www.hakobura.jp/map";
+
+  const content = [
+    '<div style="max-width:260px;line-height:1.5">',
+    '<strong style="font-size:1rem">' + escapeHtml(name) + '</strong>',
+    '<div>' + escapeHtml(t("tourism_popup_area")) + ': ' + escapeHtml(area) + '</div>',
+    '<div>' + escapeHtml(t("tourism_popup_category")) + ': ' + escapeHtml(category) + '</div>',
+    '<div>' + escapeHtml(address) + '</div>',
+    '<a href="' + escapeHtml(sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(t("tourism_popup_official")) + '</a>',
+    '</div>',
+  ].join("");
+
+  touristSpotInfoWindow?.close();
+  touristSpotInfoWindow = new google.maps.InfoWindow({ content });
+  touristSpotInfoWindow.open({ map, anchor: marker });
+}
+
 /* ========== マーカー（SVG） ========== */
 // size と scaledSize を表示サイズに統一し、透明な領域での誤クリックを防ぐ。
 // 当たり判定：point は小さめ、shape で円領域。anchor は足元（下辺中央）。
 function addCustomMarker(position, title, type = "building", source = "official", details = null) {
-  let iconUrl = "./HB.svg";
+  let iconUrl = "./evacuation_destination.svg";
   if (type === "point") {
     iconUrl = "./HP.svg";
-  } else if (source === "community") {
-    iconUrl = "./community_building.svg";
-  } else if (source === "official" && details?.classification_status === "review_needed") {
-    iconUrl = "./classification_review.svg";
-  } else if (source === "official" && details?.is_designated_shelter === true) {
-    iconUrl = "./HB.svg";
-  } else if (source === "official" && details?.evacuation_category === "designated_emergency_place_tsunami") {
-    iconUrl = "./emergency_place.svg";
-  } else if (source === "official" && details?.evacuation_category === "tsunami_evacuation_building") {
-    iconUrl = "./tsunami_building.svg";
+  } else if (details?.is_designated_shelter === true) {
+    iconUrl = "./evacuation_destination_shelter.svg";
   }
 
-  const sizeByType = { building: 34, point: 20 };
+  const sizeByType = appMode === "tourism"
+    ? { building: 22, point: 14 }
+    : { building: 34, point: 20 };
   const w = sizeByType[type] || 30;
   const h = w;
   const cx = Math.floor(w / 2);
@@ -590,6 +713,8 @@ function addCustomMarker(position, title, type = "building", source = "official"
       anchor: new google.maps.Point(cx, h - 2)   // 足元
     },
     shape: { type: "circle", coords: [cx, cy, r] },
+    opacity: appMode === "tourism" ? 0.35 : 1,
+    zIndex: appMode === "tourism" ? 100 : undefined,
     optimized: false
   });
 
@@ -609,6 +734,38 @@ function addCustomMarker(position, title, type = "building", source = "official"
   });
 
   return marker;
+}
+
+// 観光モードでは避難先を補助情報として小さく薄くし、観光地を見やすくする。
+function setEvacuationMarkerEmphasisForMode(isTourismMode) {
+  const sizeByType = isTourismMode
+    ? { building: 22, point: 14 }
+    : { building: 34, point: 20 };
+
+  destinations.forEach((dest) => {
+    const marker = dest.marker;
+    if (!marker) return;
+
+    const w = sizeByType[dest.markerType] || (isTourismMode ? 20 : 30);
+    const h = w;
+    const cx = Math.floor(w / 2);
+    const cy = Math.floor(h / 2);
+    const r = Math.max(5, Math.floor(w / 2) - 2);
+    const currentIcon = marker.getIcon();
+
+    if (currentIcon && typeof currentIcon === "object") {
+      marker.setIcon({
+        ...currentIcon,
+        size: new google.maps.Size(w, h),
+        scaledSize: new google.maps.Size(w, h),
+        origin: new google.maps.Point(0, 0),
+        anchor: new google.maps.Point(cx, h - 2),
+      });
+    }
+    marker.setShape({ type: "circle", coords: [cx, cy, r] });
+    marker.setOpacity(isTourismMode ? 0.35 : 1);
+    marker.setZIndex(isTourismMode ? 100 : undefined);
+  });
 }
 
 /* ========== ポップアップ（InfoWindow） ========== */
@@ -1410,20 +1567,29 @@ function setupReportDialog() {
 // 現在のモードと言語に合わせて、ヘッダーの操作案内だけを更新する。
 function updateModeGuidance() {
   const hint = document.querySelector('#app-header [data-i18n="header_subtext"]');
-  if (hint) hint.textContent = t(appMode === "report" ? "header_report_subtext" : "header_subtext");
+  const guidanceKey = appMode === "report"
+    ? "header_report_subtext"
+    : appMode === "tourism" ? "header_tourism_subtext" : "header_subtext";
+  if (hint) hint.textContent = t(guidanceKey);
   // 文の折り返しで高さが変わった場合も、地図がヘッダーに隠れないようにする。
   if (typeof updateLayoutHeightVars === "function") updateLayoutHeightVars();
 }
 
 function setAppMode(mode) {
   if (reportSubmitState === "sending") return;
-  appMode = (mode === "report") ? "report" : "evacuation";
+  appMode = ["report", "tourism"].includes(mode) ? mode : "evacuation";
+  setEvacuationMarkerEmphasisForMode(appMode === "tourism");
   setCommunityReportMarkersVisible(appMode === "report");
+  setTouristSpotMarkersVisible(appMode === "tourism");
+  const tourismLegend = document.getElementById("tourism-map-legend");
+  if (tourismLegend) tourismLegend.hidden = appMode !== "tourism";
   const reportLegend = document.getElementById("community-report-legend");
   if (reportLegend) reportLegend.hidden = appMode !== "report";
   const destinationLegend = document.getElementById("destination-map-legend");
-  if (destinationLegend) destinationLegend.hidden = appMode !== "evacuation";
-  if (appMode === "report") {
+  if (destinationLegend) {
+    destinationLegend.hidden = !["evacuation", "tourism"].includes(appMode);
+  }
+  if (appMode !== "evacuation") {
     clearBuildingLocation();
     if (startMarker) startMarker.setMap(null);
     startMarker = null;
@@ -1437,10 +1603,10 @@ function setAppMode(mode) {
   // 投稿時は地図を広く使う。入力値や折りたたみ状態は保持する。
   const buildingForm = document.getElementById("building-form");
   if (buildingForm) {
-    buildingForm.hidden = !IS_BUILDING_ADMIN_VIEW || appMode === "report";
+    buildingForm.hidden = !IS_BUILDING_ADMIN_VIEW || appMode !== "evacuation";
   }
   updateModeGuidance();
-  if (appMode === "evacuation") {
+  if (appMode !== "report") {
     clearReportDraft();
     const dialog = document.getElementById("report-dialog");
     if (dialog && dialog.open) dialog.close();
@@ -1452,9 +1618,14 @@ function setAppMode(mode) {
   const reportButton =
     document.getElementById("report-mode-button");
 
-  if (!evacuationButton || !reportButton) return;
+  const tourismButton =
+    document.getElementById("tourism-mode-button");
+
+  if (!evacuationButton || !reportButton || !tourismButton) return;
 
   const isEvacuationMode = appMode === "evacuation";
+  const isReportMode = appMode === "report";
+  const isTourismMode = appMode === "tourism";
 
   evacuationButton.classList.toggle(
     "active",
@@ -1463,7 +1634,12 @@ function setAppMode(mode) {
 
   reportButton.classList.toggle(
     "active",
-    !isEvacuationMode
+    isReportMode
+  );
+
+  tourismButton.classList.toggle(
+    "active",
+    isTourismMode
   );
 
   evacuationButton.setAttribute(
@@ -1473,7 +1649,12 @@ function setAppMode(mode) {
 
   reportButton.setAttribute(
     "aria-pressed",
-    String(!isEvacuationMode)
+    String(isReportMode)
+  );
+
+  tourismButton.setAttribute(
+    "aria-pressed",
+    String(isTourismMode)
   );
 }
 
@@ -1485,7 +1666,10 @@ function setupModeSwitch() {
   const reportButton =
     document.getElementById("report-mode-button");
 
-  if (!evacuationButton || !reportButton) {
+  const tourismButton =
+    document.getElementById("tourism-mode-button");
+
+  if (!evacuationButton || !reportButton || !tourismButton) {
     console.warn("モード切替ボタンが見つかりません。");
     return;
   }
@@ -1496,6 +1680,10 @@ function setupModeSwitch() {
 
   reportButton.addEventListener("click", () => {
     setAppMode("report");
+  });
+
+  tourismButton.addEventListener("click", () => {
+    setAppMode("tourism");
   });
 
   // 起動時は避難モード

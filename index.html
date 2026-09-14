@@ -106,7 +106,7 @@
     border-color: #006fd6;
     }
 
-    #community-report-legend, #destination-map-legend {
+    #community-report-legend, #destination-map-legend, #tourism-map-legend {
       position: absolute;
       left: 16px;
       bottom: calc(var(--info-h) + var(--footer-h) + 12px);
@@ -118,23 +118,27 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
       font-size: .85rem;
     }
-    #community-report-legend[hidden], #destination-map-legend[hidden] { display: none; }
-    #community-report-legend > summary, #destination-map-legend > summary {
+    #community-report-legend[hidden], #destination-map-legend[hidden], #tourism-map-legend[hidden] { display: none; }
+    #community-report-legend > summary, #destination-map-legend > summary, #tourism-map-legend > summary {
       cursor: pointer;
       font-weight: 700;
       user-select: none;
     }
-    #community-report-legend[open] > summary, #destination-map-legend[open] > summary { margin-bottom: 5px; }
+    #community-report-legend[open] > summary, #destination-map-legend[open] > summary, #tourism-map-legend[open] > summary { margin-bottom: 5px; }
     .community-report-legend-item { display: flex; align-items: center; gap: 7px; margin-top: 4px; }
     .community-report-legend-dot { width: 12px; height: 12px; flex-shrink: 0; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); }
     .community-report-legend-dot.use { background: #16833b; }
     .community-report-legend-dot.depends { background: #e68a00; }
     .community-report-legend-dot.avoid { background: #c62828; }
-    .community-report-legend-dot.tsunami-building { background: #e67e00; }
-    .community-report-legend-dot.emergency-place { background: #006fd6; }
-    .community-report-legend-dot.shelter { background: #0c8a41; }
-    .community-report-legend-dot.shared { background: #6f42c1; }
-    .community-report-legend-dot.review { background: #6c757d; }
+    .community-report-legend-dot.destination { background: #0c8a41; }
+    .community-report-legend-dot.tourism { background: #7b2cbf; }
+    .community-report-legend-dot.shelter {
+      box-sizing: border-box;
+      background: #0c8a41;
+      border: 3px solid #ffd400;
+      box-shadow: 0 0 0 1px #fff, 0 0 0 2px rgba(0, 0, 0, .3);
+    }
+    #tourism-map-legend { left: auto; right: 16px; }
     #refresh-community-reports { width: 100%; min-height: 36px; margin-top: 9px; border: 1px solid #006fd6; border-radius: 6px; background: #fff; color: #005aaa; font: inherit; cursor: pointer; }
     #refresh-community-reports:disabled { opacity: .55; cursor: wait; }
     #community-report-refresh-status { min-height: 1.3em; margin: 6px 0 0; font-size: .8rem; }
@@ -147,7 +151,7 @@
       right: 10px;
     }
 
-    #community-report-legend, #destination-map-legend {
+    #community-report-legend, #destination-map-legend, #tourism-map-legend {
       left: 10px;
       bottom: calc(var(--info-h) + var(--footer-h) + 8px);
       max-width: calc(100% - 20px);
@@ -155,21 +159,25 @@
       font-size: .72rem;
     }
 
-    #community-report-legend:not([open]), #destination-map-legend:not([open]) {
+    #community-report-legend:not([open]), #destination-map-legend:not([open]), #tourism-map-legend:not([open]) {
       width: auto;
     }
 
     #community-report-legend .community-report-legend-item,
-    #destination-map-legend .community-report-legend-item {
+    #destination-map-legend .community-report-legend-item,
+    #tourism-map-legend .community-report-legend-item {
       gap: 5px;
       margin-top: 2px;
     }
 
     #community-report-legend .community-report-legend-dot,
-    #destination-map-legend .community-report-legend-dot {
+    #destination-map-legend .community-report-legend-dot,
+    #tourism-map-legend .community-report-legend-dot {
       width: 10px;
       height: 10px;
     }
+
+    #tourism-map-legend { left: auto; right: 10px; }
 
     .mode-button {
       flex: 1;
@@ -343,11 +351,13 @@
     #destination-type-guide p { margin: 6px 0 0; line-height: 1.45; }
     .destination-guide-row { display: flex; align-items: flex-start; gap: 7px; }
     .destination-guide-swatch { width: 14px; height: 14px; flex: 0 0 14px; margin-top: 3px; border: 2px solid #fff; border-radius: 4px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .28); }
-    .destination-guide-swatch.tsunami-building { background: #e67e00; }
-    .destination-guide-swatch.emergency-place { background: #006fd6; }
-    .destination-guide-swatch.shelter { background: #0c8a41; }
-    .destination-guide-swatch.shared { background: #6f42c1; }
-    .destination-guide-swatch.review { background: #6c757d; }
+    .destination-guide-swatch.destination { background: #0c8a41; }
+    .destination-guide-swatch.shelter {
+      box-sizing: border-box;
+      background: #0c8a41;
+      border: 4px solid #ffd400;
+      box-shadow: 0 0 0 1px #fff, 0 0 0 2px rgba(0, 0, 0, .3);
+    }
     #destination-type-guide .destination-type-note { padding-top: 6px; border-top: 1px solid #ccd8e4; color: #555; }
     #refresh-community-buildings { width: 100%; min-height: 40px; margin: 0 0 8px; border: 1px solid #006fd6; border-radius: 6px; background: #fff; color: #005aaa; font: inherit; cursor: pointer; }
     #refresh-community-buildings:disabled { opacity: .55; cursor: wait; }
@@ -525,7 +535,7 @@
     <div class="map-area">
       <div id="map" role="application" aria-label="map"></div>
 
-      <!-- 避難機能と地域情報投稿機能の切り替え -->
+      <!-- 避難・地域情報投稿・観光マップの切り替え -->
       <div id="mode-switch">
         <button
           id="evacuation-mode-button"
@@ -546,15 +556,27 @@
         >
           地域情報を投稿
         </button>
+
+        <button
+          id="tourism-mode-button"
+          class="mode-button"
+          type="button"
+          aria-pressed="false"
+          data-i18n="mode_tourism"
+        >
+          観光マップ
+        </button>
       </div>
 
       <details id="destination-map-legend">
         <summary id="destination-map-legend-title" data-i18n="destination_map_legend_title">避難先マーカー</summary>
-        <div class="community-report-legend-item"><span class="community-report-legend-dot tsunami-building" aria-hidden="true"></span><span data-i18n="building_type_tsunami_building">津波避難ビル</span></div>
-        <div class="community-report-legend-item"><span class="community-report-legend-dot emergency-place" aria-hidden="true"></span><span data-i18n="building_type_emergency_place">指定緊急避難場所</span></div>
-        <div class="community-report-legend-item"><span class="community-report-legend-dot shelter" aria-hidden="true"></span><span data-i18n="building_type_also_shelter">指定避難所を兼ねる</span></div>
-        <div class="community-report-legend-item"><span class="community-report-legend-dot shared" aria-hidden="true"></span><span data-i18n="building_list_shared">共有投稿（公式未確認）</span></div>
-        <div class="community-report-legend-item"><span class="community-report-legend-dot review" aria-hidden="true"></span><span data-i18n="building_type_review_needed">区分確認中</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot destination" aria-hidden="true"></span><span data-i18n="destination_marker_all">避難先</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot shelter" aria-hidden="true"></span><span data-i18n="destination_marker_shelter">黄色の太枠：津波後も利用できる避難所</span></div>
+      </details>
+
+      <details id="tourism-map-legend" hidden>
+        <summary data-i18n="tourism_legend_title">観光地マーカー</summary>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot tourism" aria-hidden="true"></span><span data-i18n="tourism_marker_label">観光地</span></div>
       </details>
 
       <details id="community-report-legend" hidden>
@@ -581,11 +603,8 @@
         </select>
         <details id="destination-type-guide">
           <summary data-i18n="destination_guide_title">避難先の種類</summary>
-          <p class="destination-guide-row"><span class="destination-guide-swatch tsunami-building" aria-hidden="true"></span><span data-i18n="destination_guide_tsunami_building">オレンジ：津波から緊急的・一時的に避難する津波避難ビルです。</span></p>
-          <p class="destination-guide-row"><span class="destination-guide-swatch emergency-place" aria-hidden="true"></span><span data-i18n="destination_guide_emergency">青：津波に対応する指定緊急避難場所です。</span></p>
-          <p class="destination-guide-row"><span class="destination-guide-swatch shelter" aria-hidden="true"></span><span data-i18n="destination_guide_shelter">緑：指定避難所も兼ねる施設です。危険が去った後などに一定期間滞在できます。</span></p>
-          <p class="destination-guide-row"><span class="destination-guide-swatch shared" aria-hidden="true"></span><span data-i18n="destination_guide_shared">紫：利用者が追加した、公式未確認の共有投稿です。</span></p>
-          <p class="destination-guide-row destination-type-note"><span class="destination-guide-swatch review" aria-hidden="true"></span><span data-i18n="destination_guide_notice">灰色：「区分確認中」の施設です。現行の公式情報との再確認が必要です。</span></p>
+          <p class="destination-guide-row"><span class="destination-guide-swatch destination" aria-hidden="true"></span><span data-i18n="destination_guide_all_green">緑：津波から避難するための避難先です。</span></p>
+          <p class="destination-guide-row destination-type-note"><span class="destination-guide-swatch shelter" aria-hidden="true"></span><span data-i18n="destination_guide_shelter_border">黄色の太枠：津波の危険が去った後も、指定避難所として一定期間滞在できる施設です。</span></p>
         </details>
         <button id="refresh-community-buildings" type="button" data-i18n="building_refresh">共有情報を更新</button>
         <p id="building-refresh-status" role="status" aria-live="polite"></p>
@@ -683,7 +702,7 @@
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <script src="./supabase_reports.js?v=20260910-6"></script>
  <script src="./supabase_buildings.js?v=20260910-1"></script>
- <script src="./map_eva.js?v=20260914-3"></script>
+ <script src="./map_eva.js?v=20260914-8"></script>
 
   <!-- 固定欄の高さを実測し、CSS変数を更新 -->
   <script>
@@ -710,6 +729,7 @@
 
       document.getElementById('destination-map-legend').open = !isMobile;
       document.getElementById('community-report-legend').open = !isMobile;
+      document.getElementById('tourism-map-legend').open = !isMobile;
 
       if (isMobile) {
         document.getElementById('building-form').open = false;
