@@ -160,7 +160,26 @@ const I18N = {
     building_list_save_failed: "保存できませんでした。元の施設名に戻しました。",
     building_list_delete: "削除",
     building_list_delete_confirm: "「{name}」を削除しますか？",
-    building_list_delete_failed: "削除を保存できませんでした。"
+    building_list_delete_failed: "削除を保存できませんでした。",
+    building_form_title: "避難ビルの追加",
+    building_form_tap_map_title: "地図をタップ",
+    building_form_name: "施設名",
+    building_form_name_placeholder: "例：○○市民会館",
+    building_form_pick_location: "地図で位置を選ぶ",
+    building_form_repick_location: "地図で位置を選び直す",
+    building_form_cancel_location: "位置選択をやめる",
+    building_form_location_unselected: "位置は未選択です。",
+    building_form_location_selecting: "追加したい位置を地図上でタップしてください。",
+    building_form_location_selected: "位置を選択しました。施設名を確認して「避難ビルを追加」を押してください。",
+    building_form_add: "避難ビルを追加",
+    building_form_marker_title: "追加する避難ビルの位置",
+    building_form_name_required: "施設名を入力してください。",
+    building_form_location_required: "「地図で位置を選ぶ」を押して、追加する位置を選んでください。",
+    building_form_location_invalid: "緯度または経度の範囲が正しくありません。",
+    building_form_duplicate: "同じ施設名、またはほぼ同じ位置の避難先があります。",
+    building_form_saving: "共有データへ保存中…",
+    building_form_save_failed: "共有データへの保存に失敗しました。入力を残しています。",
+    building_form_saved: "{name}を共有避難ビルとして追加しました。"
   },
   en: {
     go_here: "Go here",
@@ -288,7 +307,26 @@ const I18N = {
     building_list_save_failed: "Could not save. The original name has been restored.",
     building_list_delete: "Delete",
     building_list_delete_confirm: "Delete “{name}”?",
-    building_list_delete_failed: "Could not save the deletion."
+    building_list_delete_failed: "Could not save the deletion.",
+    building_form_title: "Add an evacuation building",
+    building_form_tap_map_title: "Tap the map",
+    building_form_name: "Facility name",
+    building_form_name_placeholder: "Example: Community Center",
+    building_form_pick_location: "Choose location on map",
+    building_form_repick_location: "Choose another location",
+    building_form_cancel_location: "Cancel location selection",
+    building_form_location_unselected: "No location selected.",
+    building_form_location_selecting: "Tap the map where you want to add the building.",
+    building_form_location_selected: "Location selected. Check the facility name and press “Add evacuation building”.",
+    building_form_add: "Add evacuation building",
+    building_form_marker_title: "Location of the evacuation building to add",
+    building_form_name_required: "Enter a facility name.",
+    building_form_location_required: "Press “Choose location on map” and select the location to add.",
+    building_form_location_invalid: "The latitude or longitude is outside the valid range.",
+    building_form_duplicate: "A destination with the same name or nearly the same location already exists.",
+    building_form_saving: "Saving to shared data…",
+    building_form_save_failed: "Could not save to shared data. Your input has been retained.",
+    building_form_saved: "{name} was added as a shared evacuation building."
   }
 };
 
@@ -337,6 +375,7 @@ function applyI18nToUI(){
   });
   updateModeGuidance();
   updateReportSelection();
+  updateBuildingLocationUI();
   renderBuildingList();
   const btn = document.getElementById("lang-toggle");
   if (btn){
@@ -1896,17 +1935,23 @@ function updateBuildingLocationUI() {
   const formSummary = document.querySelector("#building-form > summary");
   document.body.classList.toggle("building-location-selecting", isSelectingBuildingLocation);
   if (formSummary) {
-    formSummary.textContent = isSelectingBuildingLocation ? "地図をタップ" : "避難ビルの追加";
+    formSummary.textContent = isSelectingBuildingLocation
+      ? t("building_form_tap_map_title")
+      : t("building_form_title");
   }
   if (pick) {
     pick.setAttribute("aria-pressed", String(isSelectingBuildingLocation));
-    pick.textContent = buildingLocation ? "地図で位置を選び直す" : "地図で位置を選ぶ";
+    pick.textContent = buildingLocation
+      ? t("building_form_repick_location")
+      : t("building_form_pick_location");
   }
   if (cancel) cancel.hidden = !isSelectingBuildingLocation && !buildingLocation;
   if (add) add.disabled = !buildingLocation || isSelectingBuildingLocation;
   if (status) status.textContent = isSelectingBuildingLocation
-    ? "追加したい位置を地図上でタップしてください。"
-    : buildingLocation ? "位置を選択しました。施設名を確認して「避難ビルを追加」を押してください。" : "位置は未選択です。";
+    ? t("building_form_location_selecting")
+    : buildingLocation
+      ? t("building_form_location_selected")
+      : t("building_form_location_unselected");
 }
 
 function clearBuildingLocation() {
@@ -1925,7 +1970,7 @@ function selectBuildingLocation(location) {
   buildingLocation = { lat, lng };
   if (buildingLocationMarker) buildingLocationMarker.setMap(null);
   buildingLocationMarker = new google.maps.Marker({
-    position: buildingLocation, map, label: "+", title: "追加する避難ビルの位置", clickable: false,
+    position: buildingLocation, map, label: "+", title: t("building_form_marker_title"), clickable: false,
   });
   isSelectingBuildingLocation = false;
   updateBuildingLocationUI();
@@ -1954,15 +1999,15 @@ async function addEvacuationBuilding() {
   };
 
   if (!name) {
-    setStatus("施設名を入力してください。");
+    setStatus(t("building_form_name_required"));
     return;
   }
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    setStatus("「地図で位置を選ぶ」を押して、追加する位置を選んでください。");
+    setStatus(t("building_form_location_required"));
     return;
   }
   if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-    setStatus("緯度または経度の範囲が正しくありません。");
+    setStatus(t("building_form_location_invalid"));
     return;
   }
 
@@ -1974,7 +2019,7 @@ async function addEvacuationBuilding() {
     return sameName || nearSamePosition;
   });
   if (duplicate) {
-    setStatus("同じ施設名、またはほぼ同じ位置の避難先があります。");
+    setStatus(t("building_form_duplicate"));
     return;
   }
 
@@ -1991,7 +2036,7 @@ async function addEvacuationBuilding() {
 
   const addButton = document.getElementById("add-building-button");
   if (addButton) addButton.disabled = true;
-  setStatus("共有データへ保存中…");
+  setStatus(t("building_form_saving"));
   try {
     const saved = await saveCommunityBuilding({
       id: newBuilding.id,
@@ -2002,7 +2047,7 @@ async function addEvacuationBuilding() {
     newBuilding.contributor_user_id = saved.contributor_user_id;
     communityCurrentUserId = saved.contributor_user_id;
   } catch (_) {
-    setStatus("共有データへの保存に失敗しました。入力を残しています。");
+    setStatus(t("building_form_save_failed"));
     updateBuildingLocationUI();
     return;
   }
@@ -2020,7 +2065,7 @@ async function addEvacuationBuilding() {
   map.panTo(newBuilding.location);
   map.setZoom(Math.max(map.getZoom() || 15, 17));
 
-  setStatus(name + "を共有避難ビルとして追加しました。");
+  setStatus(t("building_form_saved", { name }));
   nameElement.value = "";
 }
 

@@ -594,20 +594,21 @@
 
       <!-- 地図上に重ねる、折りたたみ可能な避難ビル追加フォーム -->
       <details id="building-form">
-        <summary>避難ビルの追加</summary>
+        <summary data-i18n="building_form_title">避難ビルの追加</summary>
 
-        <label for="building-name">施設名</label>
+        <label for="building-name" data-i18n="building_form_name">施設名</label>
         <input
           id="building-name"
           type="text"
+          data-i18n="building_form_name_placeholder"
           placeholder="例：○○市民会館"
         >
 
-        <button id="pick-building-location" type="button" aria-pressed="false">地図で位置を選ぶ</button>
-        <button id="cancel-building-location" type="button" hidden>位置選択をやめる</button>
-        <p id="building-location-status" aria-live="polite">位置は未選択です。</p>
+        <button id="pick-building-location" type="button" aria-pressed="false" data-i18n="building_form_pick_location">地図で位置を選ぶ</button>
+        <button id="cancel-building-location" type="button" hidden data-i18n="building_form_cancel_location">位置選択をやめる</button>
+        <p id="building-location-status" aria-live="polite" data-i18n="building_form_location_unselected">位置は未選択です。</p>
 
-        <button id="add-building-button" type="button" disabled>
+        <button id="add-building-button" type="button" disabled data-i18n="building_form_add">
           避難ビルを追加
         </button>
 
@@ -682,7 +683,7 @@
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <script src="./supabase_reports.js?v=20260910-6"></script>
  <script src="./supabase_buildings.js?v=20260910-1"></script>
- <script src="./map_eva.js?v=20260914-1"></script>
+ <script src="./map_eva.js?v=20260914-2"></script>
 
   <!-- 固定欄の高さを実測し、CSS変数を更新 -->
   <script>
