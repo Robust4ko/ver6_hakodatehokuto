@@ -5,6 +5,7 @@
     "name_en": "Hakodate Morning Market",
     "category": "市場",
     "category_en": "Market",
+    "category_group": "shopping_food",
     "area": "函館駅前・大門",
     "area_en": "Hakodate Station / Daimon",
     "address": "函館市若松町9番19号",
@@ -18,6 +19,7 @@
     "name_en": "Hakodate Seikan Ferry Memorial Ship Mashu-maru",
     "category": "博物館",
     "category_en": "Museum",
+    "category_group": "history_culture",
     "area": "函館駅前・大門",
     "area_en": "Hakodate Station / Daimon",
     "address": "函館市若松町12番地先",
@@ -31,6 +33,7 @@
     "name_en": "Kanemori Red Brick Warehouse",
     "category": "歴史的建造物・街歩き",
     "category_en": "Historic buildings / Walking",
+    "category_group": "shopping_food",
     "area": "ベイエリア",
     "area_en": "Bay Area",
     "address": "函館市末広町14-12",
@@ -44,6 +47,7 @@
     "name_en": "Old Public Hall of Hakodate Ward",
     "category": "歴史的建造物",
     "category_en": "Historic building",
+    "category_group": "history_culture",
     "area": "元町・函館山",
     "area_en": "Motomachi / Mt. Hakodate",
     "address": "函館市元町11-13",
@@ -57,6 +61,7 @@
     "name_en": "Hakodate Orthodox Church",
     "category": "教会・歴史的建造物",
     "category_en": "Church / Historic building",
+    "category_group": "history_culture",
     "area": "元町・函館山",
     "area_en": "Motomachi / Mt. Hakodate",
     "address": "函館市元町3-13",
@@ -70,6 +75,7 @@
     "name_en": "Mt. Hakodate Observatory",
     "category": "展望・夜景",
     "category_en": "Viewpoint / Night view",
+    "category_group": "scenery_walk",
     "area": "元町・函館山",
     "area_en": "Motomachi / Mt. Hakodate",
     "address": "函館市函館山",
@@ -83,6 +89,7 @@
     "name_en": "Goryokaku Park",
     "category": "公園・史跡",
     "category_en": "Park / Historic site",
+    "category_group": "history_culture",
     "area": "五稜郭",
     "area_en": "Goryokaku",
     "address": "函館市五稜郭町44",
@@ -96,6 +103,7 @@
     "name_en": "Goryokaku Tower",
     "category": "展望・歴史",
     "category_en": "Viewpoint / History",
+    "category_group": "history_culture",
     "area": "五稜郭",
     "area_en": "Goryokaku",
     "address": "函館市五稜郭町43-9",
@@ -109,6 +117,7 @@
     "name_en": "Yunokawa Onsen Footbath",
     "category": "温泉・足湯",
     "category_en": "Hot spring / Footbath",
+    "category_group": "nature_leisure",
     "area": "湯の川",
     "area_en": "Yunokawa",
     "address": "函館市湯川町1-16-5",
@@ -122,11 +131,184 @@
     "name_en": "Hakodate Tropical Botanical Garden",
     "category": "植物園",
     "category_en": "Botanical garden",
+    "category_group": "nature_leisure",
     "area": "湯の川",
     "area_en": "Yunokawa",
     "address": "函館市湯川町3-1-15",
     "address_en": "3-1-15 Yunokawa-cho, Hakodate",
     "location": { "lat": 41.774006, "lng": 140.789501 },
     "source_url": "https://www.hakobura.jp/spots/362"
+  },
+
+  {
+    "id": "hakodate-museum-northern-peoples",
+    "name": "函館市北方民族資料館",
+    "name_en": "Hakodate City Museum of Northern Peoples",
+    "category": "博物館",
+    "category_en": "Museum",
+    "category_group": "history_culture",
+    "area": "ベイエリア",
+    "area_en": "Bay Area",
+    "address": "函館市末広町21-7",
+    "address_en": "21-7 Suehiro-cho, Hakodate",
+    "location": {
+      "lat": 41.767152,
+      "lng": 140.711976
+    },
+    "source_url": "https://www.hakobura.jp/spots/534"
+  },
+  {
+    "id": "former-british-consulate-hakodate",
+    "name": "函館市旧イギリス領事館（開港記念館）",
+    "name_en": "Former British Consulate of Hakodate",
+    "category": "歴史的建造物・博物館",
+    "category_en": "Historic building / Museum",
+    "category_group": "history_culture",
+    "area": "元町・函館山",
+    "area_en": "Motomachi / Mt. Hakodate",
+    "address": "函館市元町33-14",
+    "address_en": "33-14 Motomachi, Hakodate",
+    "location": {
+      "lat": 41.765955,
+      "lng": 140.710651
+    },
+    "source_url": "https://www.hakobura.jp/spots/507"
+  },
+  {
+    "id": "motomachi-roman-catholic-church",
+    "name": "カトリック元町教会",
+    "name_en": "Motomachi Roman Catholic Church",
+    "category": "教会・歴史的建造物",
+    "category_en": "Church / Historic building",
+    "category_group": "history_culture",
+    "area": "元町・函館山",
+    "area_en": "Motomachi / Mt. Hakodate",
+    "address": "函館市元町15-30",
+    "address_en": "15-30 Motomachi, Hakodate",
+    "location": {
+      "lat": 41.763353,
+      "lng": 140.712769
+    },
+    "source_url": "https://www.hakobura.jp/spots/513"
+  },
+  {
+    "id": "trappistine-convent",
+    "name": "トラピスチヌ修道院",
+    "name_en": "Trappistine Convent",
+    "category": "修道院・歴史的建造物",
+    "category_en": "Convent / Historic building",
+    "category_group": "history_culture",
+    "area": "湯の川",
+    "area_en": "Yunokawa",
+    "address": "函館市上湯川町346",
+    "address_en": "346 Kamiyunokawa-cho, Hakodate",
+    "location": {
+      "lat": 41.787859,
+      "lng": 140.822458
+    },
+    "source_url": "https://www.hakobura.jp/spots/504"
+  },
+  {
+    "id": "motomachi-park",
+    "name": "元町公園",
+    "name_en": "Motomachi Park",
+    "category": "公園・街歩き",
+    "category_en": "Park / Walking",
+    "category_group": "scenery_walk",
+    "area": "元町・函館山",
+    "area_en": "Motomachi / Mt. Hakodate",
+    "address": "函館市元町12",
+    "address_en": "12 Motomachi, Hakodate",
+    "location": {
+      "lat": 41.76542,
+      "lng": 140.70979
+    },
+    "source_url": "https://www.hakobura.jp/spots/365"
+  },
+  {
+    "id": "hakodate-meijikan",
+    "name": "はこだて明治館",
+    "name_en": "Hakodate Meijikan",
+    "category": "歴史的建造物・買い物",
+    "category_en": "Historic building / Shopping",
+    "category_group": "shopping_food",
+    "area": "ベイエリア",
+    "area_en": "Bay Area",
+    "address": "函館市豊川町11-17",
+    "address_en": "11-17 Toyokawa-cho, Hakodate",
+    "location": {
+      "lat": 41.766591,
+      "lng": 140.71877
+    },
+    "source_url": "https://www.hakobura.jp/spots/763"
+  },
+  {
+    "id": "hakodate-magistrates-office",
+    "name": "箱館奉行所",
+    "name_en": "Hakodate Magistrate's Office",
+    "category": "歴史的建造物・博物館",
+    "category_en": "Historic building / Museum",
+    "category_group": "history_culture",
+    "area": "五稜郭",
+    "area_en": "Goryokaku",
+    "address": "函館市五稜郭町44番地",
+    "address_en": "44 Goryokaku-cho, Hakodate",
+    "location": {
+      "lat": 41.796812,
+      "lng": 140.757048
+    },
+    "source_url": "https://www.hakobura.jp/spots/502"
+  },
+  {
+    "id": "hachiman-zaka-slope",
+    "name": "八幡坂",
+    "name_en": "Hachimanzaka Slope",
+    "category": "景色・坂",
+    "category_en": "Viewpoint / Slope",
+    "category_group": "scenery_walk",
+    "area": "ベイエリア",
+    "area_en": "Bay Area",
+    "address": "函館市末広町",
+    "address_en": "Suehiro-cho, Hakodate",
+    "location": {
+      "lat": 41.765559,
+      "lng": 140.713654
+    },
+    "source_url": "https://www.hakobura.jp/spots/478"
+  },
+  {
+    "id": "hakodate-park-childrens-land",
+    "name": "函館公園 こどものくに",
+    "name_en": "Hakodate Park Children's Land",
+    "category": "遊園地・公園",
+    "category_en": "Amusement park / Park",
+    "category_group": "nature_leisure",
+    "area": "元町・函館山",
+    "area_en": "Motomachi / Mt. Hakodate",
+    "address": "函館市青柳町17-4",
+    "address_en": "17-4 Aoyagi-cho, Hakodate",
+    "location": {
+      "lat": 41.756318,
+      "lng": 140.716574
+    },
+    "source_url": "https://www.hakobura.jp/spots/351"
+  },
+  {
+    "id": "hakodate-hachimangu-shrine",
+    "name": "函館八幡宮",
+    "name_en": "Hakodate Hachimangu Shrine",
+    "category": "神社・歴史",
+    "category_en": "Shrine / History",
+    "category_group": "history_culture",
+    "area": "元町・函館山",
+    "area_en": "Motomachi / Mt. Hakodate",
+    "address": "函館市谷地頭町2-5",
+    "address_en": "2-5 Yachigashira-cho, Hakodate",
+    "location": {
+      "lat": 41.753886,
+      "lng": 140.710323
+    },
+    "source_url": "https://www.hakobura.jp/spots/496"
   }
+
 ]

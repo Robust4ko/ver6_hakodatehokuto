@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>津波避難シミュレーション</title>
+  <title>津波避難支援アプリ　逃げるーと</title>
   <style>
     :root{
       /* JSで実測して更新するが、初期値も入れておく */
@@ -106,6 +106,44 @@
     border-color: #006fd6;
     }
 
+    #tourism-category-filter {
+      position: absolute;
+      top: 62px;
+      left: 16px;
+      right: 16px;
+      z-index: 745;
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding: 2px 2px 7px;
+      scrollbar-width: thin;
+    }
+    #tourism-category-filter[hidden] { display: none; }
+    .tourism-category-button {
+      --tourism-category-color: #455a64;
+      flex: 0 0 auto;
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid var(--tourism-category-color);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .96);
+      color: var(--tourism-category-color);
+      font: inherit;
+      font-size: .84rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .14);
+      white-space: nowrap;
+    }
+    .tourism-category-button.active {
+      background: var(--tourism-category-color);
+      color: #fff;
+    }
+    .tourism-category-button[data-tourism-category="history_culture"] { --tourism-category-color: #7b2cbf; }
+    .tourism-category-button[data-tourism-category="scenery_walk"] { --tourism-category-color: #0077b6; }
+    .tourism-category-button[data-tourism-category="shopping_food"] { --tourism-category-color: #c65f00; }
+    .tourism-category-button[data-tourism-category="nature_leisure"] { --tourism-category-color: #198754; }
+
     #community-report-legend, #destination-map-legend, #tourism-map-legend {
       position: absolute;
       left: 16px;
@@ -132,6 +170,9 @@
     .community-report-legend-dot.avoid { background: #c62828; }
     .community-report-legend-dot.destination { background: #0c8a41; }
     .community-report-legend-dot.tourism { background: #7b2cbf; }
+    .community-report-legend-dot.tourism.scenery { background: #0077b6; }
+    .community-report-legend-dot.tourism.shopping { background: #c65f00; }
+    .community-report-legend-dot.tourism.nature { background: #198754; }
     .community-report-legend-dot.shelter {
       box-sizing: border-box;
       background: #0c8a41;
@@ -149,6 +190,18 @@
       top: 8px;
       left: 10px;
       right: 10px;
+    }
+
+    #tourism-category-filter {
+      top: 56px;
+      left: 10px;
+      right: 10px;
+      gap: 6px;
+    }
+    .tourism-category-button {
+      min-height: 36px;
+      padding: 6px 10px;
+      font-size: .76rem;
     }
 
     #community-report-legend, #destination-map-legend, #tourism-map-legend {
@@ -524,7 +577,7 @@
 <body>
   <!-- 固定ヘッダー -->
   <header id="app-header">
-    <h1 data-i18n="header_title">津波避難シミュレーション</h1>
+    <h1 data-i18n="header_title">津波避難支援アプリ　逃げるーと</h1>
     <p class="subtext" data-i18n="header_subtext">📍 地図をクリックすると避難経路を表示します</p>
     <div class="header-actions">
       <button id="lang-toggle" type="button" aria-label="Switch language">EN</button>
@@ -568,6 +621,14 @@
         </button>
       </div>
 
+      <div id="tourism-category-filter" hidden>
+        <button class="tourism-category-button active" type="button" data-tourism-category="all" data-i18n="tourism_filter_all" aria-pressed="true">すべて</button>
+        <button class="tourism-category-button" type="button" data-tourism-category="history_culture" data-i18n="tourism_filter_history" aria-pressed="false">歴史・文化</button>
+        <button class="tourism-category-button" type="button" data-tourism-category="scenery_walk" data-i18n="tourism_filter_scenery" aria-pressed="false">景観・街歩き</button>
+        <button class="tourism-category-button" type="button" data-tourism-category="shopping_food" data-i18n="tourism_filter_shopping" aria-pressed="false">買い物・グルメ</button>
+        <button class="tourism-category-button" type="button" data-tourism-category="nature_leisure" data-i18n="tourism_filter_nature" aria-pressed="false">自然・体験</button>
+      </div>
+
       <details id="destination-map-legend">
         <summary id="destination-map-legend-title" data-i18n="destination_map_legend_title">避難先マーカー</summary>
         <div class="community-report-legend-item"><span class="community-report-legend-dot destination" aria-hidden="true"></span><span data-i18n="destination_marker_all">避難先</span></div>
@@ -576,7 +637,10 @@
 
       <details id="tourism-map-legend" hidden>
         <summary data-i18n="tourism_legend_title">観光地マーカー</summary>
-        <div class="community-report-legend-item"><span class="community-report-legend-dot tourism" aria-hidden="true"></span><span data-i18n="tourism_marker_label">観光地</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot tourism" aria-hidden="true"></span><span data-i18n="tourism_filter_history">歴史・文化</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot tourism scenery" aria-hidden="true"></span><span data-i18n="tourism_filter_scenery">景観・街歩き</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot tourism shopping" aria-hidden="true"></span><span data-i18n="tourism_filter_shopping">買い物・グルメ</span></div>
+        <div class="community-report-legend-item"><span class="community-report-legend-dot tourism nature" aria-hidden="true"></span><span data-i18n="tourism_filter_nature">自然・体験</span></div>
       </details>
 
       <details id="community-report-legend" hidden>
@@ -702,7 +766,7 @@
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <script src="./supabase_reports.js?v=20260910-6"></script>
  <script src="./supabase_buildings.js?v=20260910-1"></script>
- <script src="./map_eva.js?v=20260914-8"></script>
+ <script src="./map_eva.js?v=20260927-4"></script>
 
   <!-- 固定欄の高さを実測し、CSS変数を更新 -->
   <script>
@@ -768,3 +832,4 @@
     </script> 
 </body>
 </html>
+

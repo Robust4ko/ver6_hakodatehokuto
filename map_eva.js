@@ -23,6 +23,7 @@ let communityReportInfoWindow = null;
 let touristSpots = [];
 let touristSpotMarkers = [];
 let touristSpotInfoWindow = null;
+let activeTouristCategory = "all";
 let communityCurrentUserId = null;
 let reportDraft = null; // 確認中の地点・回答。投稿するまではページ内だけで保持する。
 let reportSubmitState = "idle"; // idle / sending / success / error / uncertain
@@ -51,7 +52,7 @@ const I18N = {
     nearest_fmt_with_type: "{name}［{type}］（{meters} m、約 {duration}）",
     drawing_fmt: "{name} へ経路を表示中…",
     // UIラベル
-    header_title: "津波避難シミュレーション",
+    header_title: "津波避難支援アプリ　逃げるーと",
     header_subtext: "📍 地図をクリックすると避難経路を表示します",
     header_report_subtext: "📍 投稿する地点をタップしてください",
     header_tourism_subtext: "📍 函館の主な観光地を地図で確認します",
@@ -62,11 +63,18 @@ const I18N = {
     mode_evacuate: "避難する",
     mode_report: "地域情報を投稿",
     mode_tourism: "観光マップ",
+    tourism_filter_all: "すべて",
+    tourism_filter_history: "歴史・文化",
+    tourism_filter_scenery: "景観・街歩き",
+    tourism_filter_shopping: "買い物・グルメ",
+    tourism_filter_nature: "自然・体験",
     tourism_legend_title: "観光地マーカー",
     tourism_marker_label: "観光地",
     tourism_popup_area: "エリア",
     tourism_popup_category: "種類",
     tourism_popup_official: "函館市公式観光サイトで見る",
+    tourism_popup_google_maps: "Googleマップで開く",
+    tourism_popup_find_evacuation: "この場所から避難先を探す",
     tourism_load_error: "観光地データを読み込めませんでした。",
     report_question: "津波避難時、この地点付近の道を使いたいですか？",
     report_note: "「投稿する」を押すと、地点・回答・理由・条件・コメントを保存します。",
@@ -210,7 +218,7 @@ const I18N = {
     nearest_fmt_with_type: "{name} [{type}] ({meters} m, about {duration})",
     drawing_fmt: "Showing route to {name}…",
     // UI labels
-    header_title: "Tsunami Evacuation Simulation",
+    header_title: "Tsunami Evacuation Support App: NigeRoute",
     header_subtext: "📍 Click the map to show an evacuation route",
     header_report_subtext: "📍 Tap a location to report",
     header_tourism_subtext: "📍 View major tourist spots in Hakodate",
@@ -221,11 +229,18 @@ const I18N = {
     mode_evacuate: "Evacuate",
     mode_report: "Report local info",
     mode_tourism: "Tourism map",
+    tourism_filter_all: "All",
+    tourism_filter_history: "History & culture",
+    tourism_filter_scenery: "Scenery & walking",
+    tourism_filter_shopping: "Shopping & food",
+    tourism_filter_nature: "Nature & leisure",
     tourism_legend_title: "Tourist spot markers",
     tourism_marker_label: "Tourist spot",
     tourism_popup_area: "Area",
     tourism_popup_category: "Category",
     tourism_popup_official: "View on the official Hakodate tourism site",
+    tourism_popup_google_maps: "Open in Google Maps",
+    tourism_popup_find_evacuation: "Find an evacuation destination from here",
     tourism_load_error: "Could not load tourist spot data.",
     report_question: "Would you want to use the roads near this point during a tsunami evacuation?",
     report_note: "Press Submit to save this location, answer, reasons, conditions and comment.",
@@ -519,6 +534,7 @@ function initMap() {
 
   // 避難モード / 地域情報投稿モードを有効にする
   setupModeSwitch();
+  setupTouristCategoryFilter();
   setupReportDialog();
 
   // 地図クリック
@@ -588,9 +604,19 @@ function getTouristSpotText(spot, field) {
   return LANG === "en" ? english : japanese;
 }
 
+function getTouristSpotIconUrl(spot) {
+  const icons = {
+    history_culture: "./tourist_spot_history.svg",
+    scenery_walk: "./tourist_spot_scenery.svg",
+    shopping_food: "./tourist_spot_shopping.svg",
+    nature_leisure: "./tourist_spot_nature.svg",
+  };
+  return icons[spot?.category_group] || "./tourist_spot.svg";
+}
+
 async function loadTouristSpots() {
   try {
-    const response = await fetch("./tourist_spots.json?v=20260914-1");
+    const response = await fetch("./tourist_spots.json?v=20260927-1");
     if (!response.ok) throw new Error("HTTP " + response.status);
     const data = await response.json();
     touristSpots = data.filter((spot) =>
@@ -607,11 +633,11 @@ async function loadTouristSpots() {
           lat: Number(spot.location.lat),
           lng: Number(spot.location.lng),
         },
-        map: appMode === "tourism" ? map : null,
+        map: appMode === "tourism" && touristSpotMatchesActiveCategory(spot) ? map : null,
         title: getTouristSpotText(spot, "name"),
         clickable: true,
         icon: {
-          url: "./tourist_spot.svg",
+          url: getTouristSpotIconUrl(spot),
           size: new google.maps.Size(32, 38),
           scaledSize: new google.maps.Size(32, 38),
           origin: new google.maps.Point(0, 0),
@@ -634,7 +660,10 @@ async function loadTouristSpots() {
 }
 
 function setTouristSpotMarkersVisible(visible) {
-  touristSpotMarkers.forEach((marker) => marker.setMap(visible ? map : null));
+  touristSpotMarkers.forEach((marker) => {
+    const showMarker = visible && touristSpotMatchesActiveCategory(marker.__touristSpot);
+    marker.setMap(showMarker ? map : null);
+  });
   if (visible) {
     fitTouristSpotsToMap();
   } else {
@@ -645,8 +674,42 @@ function setTouristSpotMarkersVisible(visible) {
 function fitTouristSpotsToMap() {
   if (!map || touristSpotMarkers.length === 0) return;
   const bounds = new google.maps.LatLngBounds();
-  touristSpotMarkers.forEach((marker) => bounds.extend(marker.getPosition()));
+  const visibleMarkers = touristSpotMarkers.filter((marker) => marker.getMap());
+  if (visibleMarkers.length === 0) return;
+  visibleMarkers.forEach((marker) => bounds.extend(marker.getPosition()));
   map.fitBounds(bounds, { top: 110, right: 35, bottom: 170, left: 35 });
+}
+
+function touristSpotMatchesActiveCategory(spot) {
+  return activeTouristCategory === "all" ||
+    spot?.category_group === activeTouristCategory;
+}
+
+function setTouristCategory(category) {
+  const allowedCategories = [
+    "all",
+    "history_culture",
+    "scenery_walk",
+    "shopping_food",
+    "nature_leisure",
+  ];
+  activeTouristCategory = allowedCategories.includes(category) ? category : "all";
+  document.querySelectorAll(".tourism-category-button").forEach((button) => {
+    const isActive = button.dataset.tourismCategory === activeTouristCategory;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+  touristSpotInfoWindow?.close();
+  if (appMode === "tourism") setTouristSpotMarkersVisible(true);
+}
+
+function setupTouristCategoryFilter() {
+  document.querySelectorAll(".tourism-category-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      setTouristCategory(button.dataset.tourismCategory || "all");
+    });
+  });
+  setTouristCategory("all");
 }
 
 function updateTouristSpotLanguage() {
@@ -664,20 +727,43 @@ function openTouristSpotPopup(spot, marker) {
   const sourceUrl = /^https:\/\/www\.hakobura\.jp\//.test(spot.source_url || "")
     ? spot.source_url
     : "https://www.hakobura.jp/map";
+  const destination = spot.location;
+  const googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" +
+    encodeURIComponent(destination.lat + "," + destination.lng) + "&travelmode=walking";
+  const headerContent = document.createElement("strong");
+  headerContent.textContent = name;
+  headerContent.style.fontSize = "1rem";
+  headerContent.style.lineHeight = "1.35";
 
-  const content = [
-    '<div style="max-width:260px;line-height:1.5">',
-    '<strong style="font-size:1rem">' + escapeHtml(name) + '</strong>',
+  const content = document.createElement("div");
+  content.style.maxWidth = "260px";
+  content.style.lineHeight = "1.5";
+  content.innerHTML = [
     '<div>' + escapeHtml(t("tourism_popup_area")) + ': ' + escapeHtml(area) + '</div>',
     '<div>' + escapeHtml(t("tourism_popup_category")) + ': ' + escapeHtml(category) + '</div>',
     '<div>' + escapeHtml(address) + '</div>',
     '<a href="' + escapeHtml(sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(t("tourism_popup_official")) + '</a>',
-    '</div>',
+    '<a href="' + escapeHtml(googleMapsUrl) + '" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:8px;padding:8px 10px;border-radius:6px;background:#28a745;color:#fff;text-align:center;text-decoration:none;font-weight:700">' + escapeHtml(t("tourism_popup_google_maps")) + '</a>',
+    '<button type="button" class="tourism-popup-evacuation" style="display:block;width:100%;margin-top:8px;padding:8px 10px;border:0;border-radius:6px;background:#006fd6;color:#fff;text-align:center;font:inherit;font-weight:700;cursor:pointer">' + escapeHtml(t("tourism_popup_find_evacuation")) + '</button>',
   ].join("");
+  content.querySelector(".tourism-popup-evacuation")?.addEventListener("click", () => {
+    startEvacuationFromTouristSpot(spot);
+  });
 
   touristSpotInfoWindow?.close();
-  touristSpotInfoWindow = new google.maps.InfoWindow({ content });
+  touristSpotInfoWindow = new google.maps.InfoWindow({ content, headerContent });
   touristSpotInfoWindow.open({ map, anchor: marker });
+}
+
+function startEvacuationFromTouristSpot(spot) {
+  const lat = Number(spot?.location?.lat);
+  const lng = Number(spot?.location?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  touristSpotInfoWindow?.close();
+  setAppMode("evacuation");
+  const location = new google.maps.LatLng(lat, lng);
+  map.panTo(location);
+  setStartPoint(location);
 }
 
 /* ========== マーカー（SVG） ========== */
@@ -1583,6 +1669,8 @@ function setAppMode(mode) {
   setTouristSpotMarkersVisible(appMode === "tourism");
   const tourismLegend = document.getElementById("tourism-map-legend");
   if (tourismLegend) tourismLegend.hidden = appMode !== "tourism";
+  const tourismCategoryFilter = document.getElementById("tourism-category-filter");
+  if (tourismCategoryFilter) tourismCategoryFilter.hidden = appMode !== "tourism";
   const reportLegend = document.getElementById("community-report-legend");
   if (reportLegend) reportLegend.hidden = appMode !== "report";
   const destinationLegend = document.getElementById("destination-map-legend");
@@ -2293,3 +2381,4 @@ function setupBuildingForm() {
 window.initMap = initMap;
 window.useCurrentLocation = useCurrentLocation;
 window.launchGoogleMap = launchGoogleMap;
+
