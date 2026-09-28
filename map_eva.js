@@ -1668,14 +1668,19 @@ function setAppMode(mode) {
   setCommunityReportMarkersVisible(appMode === "report");
   setTouristSpotMarkersVisible(appMode === "tourism");
   const tourismLegend = document.getElementById("tourism-map-legend");
-  if (tourismLegend) tourismLegend.hidden = appMode !== "tourism";
+  if (tourismLegend) tourismLegend.hidden = true;
   const tourismCategoryFilter = document.getElementById("tourism-category-filter");
   if (tourismCategoryFilter) tourismCategoryFilter.hidden = appMode !== "tourism";
   const reportLegend = document.getElementById("community-report-legend");
   if (reportLegend) reportLegend.hidden = appMode !== "report";
   const destinationLegend = document.getElementById("destination-map-legend");
   if (destinationLegend) {
-    destinationLegend.hidden = !["evacuation", "tourism"].includes(appMode);
+    destinationLegend.hidden = appMode !== "evacuation";
+  }
+  const buildingListPanel = document.getElementById("building-list-panel");
+  if (buildingListPanel) {
+    buildingListPanel.hidden = appMode === "tourism";
+    if (appMode === "tourism") buildingListPanel.open = false;
   }
   if (appMode !== "evacuation") {
     clearBuildingLocation();
