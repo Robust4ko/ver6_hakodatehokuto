@@ -490,6 +490,62 @@
     button.launch-gmap { background-color: #28a745; }
     button.launch-gmap:hover { filter:brightness(0.95); }
 
+    #gps-training-panel {
+      margin-top: 8px;
+      padding: 7px 10px;
+      border: 1px solid #aaa;
+      border-radius: 8px;
+      background: #fff;
+      color: #222;
+    }
+    #gps-training-panel > summary { cursor: pointer; font-weight: 700; }
+    .gps-training-description,
+    .gps-training-privacy { margin: 7px 0; font-size: .82em; line-height: 1.4; }
+    .gps-training-privacy { color: #555; }
+    .gps-training-meta {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 3px 8px;
+      margin: 7px 0;
+      font-size: .78em;
+    }
+    .gps-training-meta dt { font-weight: 700; }
+    .gps-training-meta dd { margin: 0; overflow-wrap: anywhere; }
+    .gps-training-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      margin: 8px 0;
+    }
+    .gps-training-stat {
+      padding: 6px 4px;
+      border-radius: 6px;
+      background: #eef7ff;
+      text-align: center;
+    }
+    .gps-training-stat span { display: block; font-size: .75em; color: #555; }
+    .gps-training-stat strong { display: block; margin-top: 2px; font-size: 1em; }
+    .gps-training-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .gps-training-actions button {
+      min-width: 0;
+      padding: 8px 4px;
+      border: 0;
+      border-radius: 6px;
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+    #gps-training-start { background: #007bff; }
+    #gps-training-stop { background: #c62828; }
+    #gps-training-download { background: #546e7a; }
+    .gps-training-actions button:disabled { opacity: .45; cursor: default; }
+    #gps-training-status { min-height: 1.3em; margin: 7px 0 0; font-size: .82em; }
+
     /* 下段 footer（作成者表示） */
     footer {
       background-color: #fff;
@@ -713,6 +769,27 @@
             Googleマップで開く
           </button>
         </div>
+        <details id="gps-training-panel">
+          <summary data-i18n="gps_training_title">避難訓練のGPS記録</summary>
+          <p class="gps-training-description" data-i18n="gps_training_description">歩いた軌跡と時間をこの画面で記録します。</p>
+          <dl class="gps-training-meta">
+            <dt data-i18n="gps_training_id">訓練番号</dt><dd id="gps-training-id">―</dd>
+            <dt data-i18n="gps_training_started_at">開始時刻</dt><dd id="gps-training-started-at">―</dd>
+            <dt data-i18n="gps_training_ended_at">終了時刻</dt><dd id="gps-training-ended-at">―</dd>
+          </dl>
+          <div class="gps-training-stats" aria-live="polite">
+            <div class="gps-training-stat"><span data-i18n="gps_training_elapsed">経過時間</span><strong id="gps-training-elapsed">00:00</strong></div>
+            <div class="gps-training-stat"><span data-i18n="gps_training_distance">移動距離（概算）</span><strong id="gps-training-distance">0 m</strong></div>
+            <div class="gps-training-stat"><span data-i18n="gps_training_points">記録地点</span><strong id="gps-training-points">0</strong></div>
+          </div>
+          <div class="gps-training-actions">
+            <button id="gps-training-start" type="button" data-i18n="gps_training_start">記録開始</button>
+            <button id="gps-training-stop" type="button" disabled data-i18n="gps_training_stop">記録終了</button>
+            <button id="gps-training-download" type="button" disabled data-i18n="gps_training_download">CSVを保存</button>
+          </div>
+          <p id="gps-training-status" role="status" aria-live="polite" data-i18n="gps_training_idle">記録を開始すると位置情報の許可を求めます。</p>
+          <p class="gps-training-privacy" data-i18n="gps_training_privacy">位置情報は自動送信されません。この画面を閉じると記録は失われます。</p>
+        </details>
       </div>
     </div>
   </div>
@@ -766,7 +843,7 @@
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <script src="./supabase_reports.js?v=20260910-6"></script>
  <script src="./supabase_buildings.js?v=20260910-1"></script>
- <script src="./map_eva.js?v=20260928-2"></script>
+ <script src="./map_eva.js?v=20260929-1"></script>
 
   <!-- 固定欄の高さを実測し、CSS変数を更新 -->
   <script>
