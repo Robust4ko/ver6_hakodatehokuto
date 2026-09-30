@@ -12,8 +12,11 @@
       --info-h: 150px;  /* JSで「最短の避難先」欄の高さを実測 */
     }
     html, body {
+      width: 100%;
       height: 100%;
       margin: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, Arial, sans-serif;
       color: #111;
     }
@@ -61,11 +64,16 @@
 
     /* 全体レイアウト：ヘッダー分の余白を上に確保 */
     .container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
       height: 100vh;
+      height: 100dvh;
       padding-top: var(--header-h);  /* ヘッダー高さぶん下げる */
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
+      overflow: hidden;
     }
     .map-area {
       flex: 1 1 auto;
@@ -79,7 +87,7 @@
     position: absolute;
     top: 12px;
     left: 16px;
-    z-index: 750;
+    z-index: 950;
     display: flex;
     gap: 8px;
     }
@@ -111,7 +119,7 @@
       top: 62px;
       left: 16px;
       right: 16px;
-      z-index: 745;
+      z-index: 945;
       display: flex;
       gap: 7px;
       overflow-x: auto;
@@ -382,7 +390,7 @@
       position: absolute;
       top: 70px;
       right: 16px;
-      z-index: 710;
+      z-index: 930;
       width: min(360px, calc(100% - 32px));
       max-height: calc(100% - 70px - var(--info-h) - var(--footer-h) - 12px);
       overflow: auto;
@@ -542,7 +550,8 @@
     }
     #gps-training-start { background: #007bff; }
     #gps-training-stop { background: #c62828; }
-    #gps-training-download { background: #546e7a; }
+
+    #gps-training-upload { background: #00695c; }
     .gps-training-actions button:disabled { opacity: .45; cursor: default; }
     #gps-training-status { min-height: 1.3em; margin: 7px 0 0; font-size: .82em; }
 
@@ -564,7 +573,15 @@
     @media (max-width: 768px) {
       header#app-header h1 { font-size: 1em; }
       header#app-header .subtext { font-size: 0.7em; }
-      .info-area { font-size: 0.85em; padding: 8px 12px; width: 100vw; }
+      /* GPS欄を開いても上部の地図操作を覆わない。内容は欄内でスクロールする。 */
+      .info-area {
+        font-size: 0.85em;
+        padding: 8px 12px;
+        max-height: min(45vh, calc(100vh - var(--header-h) - var(--footer-h) - 160px));
+        max-height: min(45dvh, calc(100dvh - var(--header-h) - var(--footer-h) - 160px));
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+      }
       .button-row { gap: 6px; }
 
       #building-form {
@@ -770,7 +787,7 @@
           </button>
         </div>
         <details id="gps-training-panel">
-          <summary data-i18n="gps_training_title">避難訓練のGPS記録</summary>
+          <summary data-i18n="gps_training_title">GPS記録</summary>
           <p class="gps-training-description" data-i18n="gps_training_description">歩いた軌跡と時間をこの画面で記録します。</p>
           <dl class="gps-training-meta">
             <dt data-i18n="gps_training_id">訓練番号</dt><dd id="gps-training-id">―</dd>
@@ -785,10 +802,11 @@
           <div class="gps-training-actions">
             <button id="gps-training-start" type="button" data-i18n="gps_training_start">記録開始</button>
             <button id="gps-training-stop" type="button" disabled data-i18n="gps_training_stop">記録終了</button>
-            <button id="gps-training-download" type="button" disabled data-i18n="gps_training_download">CSVを保存</button>
+
+            <button id="gps-training-upload" type="button" disabled data-i18n="gps_training_upload">保存する</button>
           </div>
           <p id="gps-training-status" role="status" aria-live="polite" data-i18n="gps_training_idle">記録を開始すると位置情報の許可を求めます。</p>
-          <p class="gps-training-privacy" data-i18n="gps_training_privacy">位置情報は自動送信されません。この画面を閉じると記録は失われます。</p>
+          <p class="gps-training-privacy" data-i18n="gps_training_privacy">位置情報は「保存する」を押したときだけ送信されます。</p>
         </details>
       </div>
     </div>
@@ -843,7 +861,8 @@
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <script src="./supabase_reports.js?v=20260910-6"></script>
  <script src="./supabase_buildings.js?v=20260910-1"></script>
- <script src="./map_eva.js?v=20260929-1"></script>
+ <script src="./supabase_gps.js?v=20260930-1"></script>
+ <script src="./map_eva.js?v=20260930-3"></script>
 
   <!-- 固定欄の高さを実測し、CSS変数を更新 -->
   <script>
@@ -863,6 +882,12 @@
       );
     }
 
+    // GPS欄の開閉・翻訳・メッセージの折り返しにも、地図パネルの余白を追従させる。
+    if (typeof ResizeObserver !== 'undefined') {
+      const layoutSizeObserver = new ResizeObserver(updateLayoutHeightVars);
+      layoutSizeObserver.observe(document.querySelector('.info-area'));
+      layoutSizeObserver.observe(document.getElementById('app-header'));
+    }
     let lastMobilePanelLayout = null;
     function updateResponsivePanels(){
       const isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -893,14 +918,19 @@
     updateResponsivePanels();
     document.getElementById('building-form').addEventListener('toggle', closeOtherMapPanel);
     document.getElementById('building-list-panel').addEventListener('toggle', closeOtherMapPanel);
-    window.addEventListener('load', () => {
+    function stabilizeMobileViewport(){
+      // スマホブラウザが復元したページ位置を戻し、現在見えている高さに再計算する。
+      window.scrollTo(0, 0);
       updateLayoutHeightVars();
       updateResponsivePanels();
-    });
-    window.addEventListener('resize', () => {
-      updateLayoutHeightVars();
-      updateResponsivePanels();
-    });
+    }
+
+    window.addEventListener('load', stabilizeMobileViewport);
+    window.addEventListener('pageshow', stabilizeMobileViewport);
+    window.addEventListener('resize', stabilizeMobileViewport);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateLayoutHeightVars);
+    }
   </script>
 
   <!-- Google Maps（APIキー差し替え）-->

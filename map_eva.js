@@ -43,6 +43,7 @@ let gpsTrainingMarker = null;
 let gpsTrainingSessionId = "";
 let gpsTrainingStatusKey = "gps_training_idle";
 let gpsTrainingStatusVars = {};
+let gpsTrainingDatabaseState = "idle";
 
 const PRIMARY_RADIUS_M = 700;
 const FALLBACK_RADIUS_M = 500;
@@ -216,7 +217,7 @@ const I18N = {
     building_form_saving: "共有データへ保存中…",
     building_form_save_failed: "共有データへの保存に失敗しました。入力を残しています。",
     building_form_saved: "{name}を共有避難ビルとして追加しました。",
-    gps_training_title: "避難訓練のGPS記録",
+    gps_training_title: "GPS記録",
     gps_training_description: "歩いた軌跡と時間をこの画面で記録します。",
     gps_training_id: "訓練番号",
     gps_training_started_at: "開始時刻",
@@ -226,18 +227,22 @@ const I18N = {
     gps_training_points: "記録地点",
     gps_training_start: "記録開始",
     gps_training_stop: "記録終了",
-    gps_training_download: "CSVを保存",
+
+    gps_training_upload: "保存する",
     gps_training_idle: "記録を開始すると位置情報の許可を求めます。",
     gps_training_starting: "現在位置を確認しています。画面を開いたままお待ちください。",
     gps_training_recording: "GPSを記録中です（現在の精度：約±{accuracy}m）。",
-    gps_training_finished: "記録を終了しました。必要に応じてCSVを保存してください。",
-    gps_training_downloaded: "CSVを端末へ保存しました。",
+    gps_training_finished: "記録を終了しました。保存できます。",
+
+    gps_training_uploading: "GPSログをデータベースへ保存しています。",
+    gps_training_uploaded: "GPSログをデータベースへ保存しました。",
+    gps_training_upload_failed: "データベースへ保存できませんでした。通信状態とSupabaseの設定を確認してください。",
     gps_training_unsupported: "このブラウザではGPS記録を利用できません。",
     gps_training_permission_denied: "位置情報の使用が許可されませんでした。ブラウザの設定を確認してください。",
     gps_training_unavailable: "現在位置を取得できませんでした。屋外で再度お試しください。",
     gps_training_timeout: "現在位置の取得に時間がかかっています。画面を開いたままお待ちください。",
     gps_training_error: "GPS記録中にエラーが発生しました。",
-    gps_training_privacy: "位置情報は自動送信されません。この画面を閉じると記録は失われます。"
+    gps_training_privacy: "位置情報は「保存する」を押したときだけ送信されます。"
   },
   en: {
     go_here: "Go here",
@@ -404,7 +409,7 @@ const I18N = {
     building_form_saving: "Saving to shared data…",
     building_form_save_failed: "Could not save to shared data. Your input has been retained.",
     building_form_saved: "{name} was added as a shared evacuation building.",
-    gps_training_title: "GPS evacuation training record",
+    gps_training_title: "GPS recording",
     gps_training_description: "Record your walking route and time on this screen.",
     gps_training_id: "Training ID",
     gps_training_started_at: "Started at",
@@ -414,18 +419,22 @@ const I18N = {
     gps_training_points: "Recorded points",
     gps_training_start: "Start recording",
     gps_training_stop: "Stop recording",
-    gps_training_download: "Save CSV",
+
+    gps_training_upload: "Save",
     gps_training_idle: "Starting a recording will request permission to use your location.",
     gps_training_starting: "Finding your current location. Keep this screen open.",
     gps_training_recording: "Recording GPS (current accuracy: about ±{accuracy} m).",
-    gps_training_finished: "Recording finished. Save the CSV if needed.",
-    gps_training_downloaded: "The CSV file was saved to this device.",
+    gps_training_finished: "Recording finished. You can now save it.",
+
+    gps_training_uploading: "Saving the GPS log to the database.",
+    gps_training_uploaded: "The GPS log was saved to the database.",
+    gps_training_upload_failed: "The GPS log could not be saved. Check the connection and Supabase settings.",
     gps_training_unsupported: "GPS recording is not supported by this browser.",
     gps_training_permission_denied: "Location access was denied. Check your browser settings.",
     gps_training_unavailable: "Your current location is unavailable. Try again outdoors.",
     gps_training_timeout: "Location is taking longer to acquire. Keep this screen open.",
     gps_training_error: "An error occurred while recording GPS.",
-    gps_training_privacy: "Location data is not uploaded automatically. Closing this screen discards the recording."
+    gps_training_privacy: "Location data is sent only when you select Save."
   }
 };
 
@@ -1144,7 +1153,7 @@ function useCurrentLocation() {
   }
 }
 
-/* ========== 避難訓練のGPS記録 ========== */
+/* ========== GPS記録 ========== */
 function formatGpsTrainingDuration(milliseconds) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
   const hours = Math.floor(totalSeconds / 3600);
@@ -1170,10 +1179,11 @@ function updateGpsTrainingUI() {
   const statusElement = document.getElementById("gps-training-status");
   const startButton = document.getElementById("gps-training-start");
   const stopButton = document.getElementById("gps-training-stop");
-  const downloadButton = document.getElementById("gps-training-download");
+
+  const uploadButton = document.getElementById("gps-training-upload");
   if (!idElement || !startedAtElement || !endedAtElement ||
       !elapsedElement || !distanceElement || !pointsElement || !statusElement ||
-      !startButton || !stopButton || !downloadButton) return;
+      !startButton || !stopButton || !uploadButton) return;
 
   const endTime = gpsTrainingStoppedAt || Date.now();
   const elapsed = gpsTrainingStartedAt ? endTime - gpsTrainingStartedAt : 0;
@@ -1193,7 +1203,9 @@ function updateGpsTrainingUI() {
   const isRecording = gpsTrainingWatchId !== null;
   startButton.disabled = isRecording;
   stopButton.disabled = !isRecording;
-  downloadButton.disabled = gpsTrainingPoints.length === 0 || isRecording;
+
+  uploadButton.disabled = gpsTrainingPoints.length === 0 || isRecording ||
+    gpsTrainingDatabaseState === "saving" || gpsTrainingDatabaseState === "saved";
 }
 
 function setGpsTrainingStatus(key, vars = {}) {
@@ -1230,7 +1242,7 @@ function handleGpsTrainingPosition(position) {
       { lat: point.latitude, lng: point.longitude }
     );
     const seconds = Math.max(1, (point.timestamp - previous.timestamp) / 1000);
-    // 瞬間的な大きな位置飛びは距離計算から除外する。元の測位点はCSVには残す。
+    // 瞬間的な大きな位置飛びは距離計算から除外する。元の測位点は記録に残す。
     if (segmentDistance <= Math.max(100, seconds * 15)) {
       gpsTrainingDistanceMeters += segmentDistance;
     }
@@ -1326,6 +1338,7 @@ function startGpsTraining() {
   gpsTrainingStartedAt = Date.now();
   gpsTrainingStoppedAt = null;
   gpsTrainingSessionId = createGpsTrainingSessionId(gpsTrainingStartedAt);
+  gpsTrainingDatabaseState = "idle";
   setGpsTrainingStatus("gps_training_starting");
 
   gpsTrainingWatchId = navigator.geolocation.watchPosition(
@@ -1347,47 +1360,38 @@ function stopGpsTraining() {
   setGpsTrainingStatus("gps_training_finished");
 }
 
-function downloadGpsTrainingCsv() {
-  if (gpsTrainingPoints.length === 0) return;
-  const header = [
-    "training_id", "training_started_at", "training_ended_at", "elapsed_seconds",
-    "point_index", "recorded_at", "latitude", "longitude",
-    "accuracy_m", "altitude_m", "heading_deg", "speed_mps"
-  ];
-  const trainingStartedAt = new Date(gpsTrainingStartedAt).toISOString();
-  const trainingEndedAt = new Date(gpsTrainingStoppedAt || Date.now()).toISOString();
-  const elapsedSeconds = Math.max(0, Math.round(((gpsTrainingStoppedAt || Date.now()) - gpsTrainingStartedAt) / 1000));
-  const rows = gpsTrainingPoints.map((point, index) => [
-    gpsTrainingSessionId,
-    trainingStartedAt,
-    trainingEndedAt,
-    elapsedSeconds,
-    index + 1,
-    new Date(point.timestamp).toISOString(),
-    point.latitude.toFixed(7),
-    point.longitude.toFixed(7),
-    point.accuracy ?? "",
-    point.altitude ?? "",
-    point.heading ?? "",
-    point.speed ?? "",
-  ]);
-  const csv = "\ufeff" + [header, ...rows].map((row) => row.join(",")).join("\r\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${gpsTrainingSessionId}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  setGpsTrainingStatus("gps_training_downloaded");
-}
+async function uploadGpsTrainingToDatabase() {
+  if (gpsTrainingWatchId !== null || gpsTrainingPoints.length === 0 ||
+      gpsTrainingDatabaseState === "saving" || gpsTrainingDatabaseState === "saved") return;
+  if (typeof saveGpsTrainingLog !== "function") {
+    setGpsTrainingStatus("gps_training_upload_failed");
+    return;
+  }
 
+  gpsTrainingDatabaseState = "saving";
+  setGpsTrainingStatus("gps_training_uploading");
+  try {
+    const endedAt = gpsTrainingStoppedAt || Date.now();
+    await saveGpsTrainingLog({
+      trainingId: gpsTrainingSessionId,
+      startedAt: new Date(gpsTrainingStartedAt).toISOString(),
+      endedAt: new Date(endedAt).toISOString(),
+      elapsedSeconds: Math.max(0, Math.round((endedAt - gpsTrainingStartedAt) / 1000)),
+      distanceMeters: gpsTrainingDistanceMeters,
+      points: gpsTrainingPoints,
+    });
+    gpsTrainingDatabaseState = "saved";
+    setGpsTrainingStatus("gps_training_uploaded");
+  } catch (error) {
+    gpsTrainingDatabaseState = "idle";
+    setGpsTrainingStatus("gps_training_upload_failed");
+  }
+}
 function setupGpsTraining() {
   document.getElementById("gps-training-start")?.addEventListener("click", startGpsTraining);
   document.getElementById("gps-training-stop")?.addEventListener("click", stopGpsTraining);
-  document.getElementById("gps-training-download")?.addEventListener("click", downloadGpsTrainingCsv);
+
+  document.getElementById("gps-training-upload")?.addEventListener("click", uploadGpsTrainingToDatabase);
   document.getElementById("gps-training-panel")?.addEventListener("toggle", () => {
     if (typeof updateLayoutHeightVars === "function") updateLayoutHeightVars();
   });
