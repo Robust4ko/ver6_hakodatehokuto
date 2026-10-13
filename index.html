@@ -716,10 +716,14 @@
     }
 
     @media (max-width: 768px) {
+      header#app-header {
+        box-sizing: border-box;
+        padding: 6px 104px 6px 8px;
+      }
       header#app-header h1 { font-size: 1em; }
       header#app-header .subtext { font-size: 0.7em; }
-      .header-actions { right: 8px; gap: 5px; }
-      #help-button, #lang-toggle { padding: 6px 9px; font-size: 13px; }
+      .header-actions { right: 10px; gap: 10px; }
+      #help-button, #lang-toggle { padding: 6px 8px; font-size: 13px; }
       .welcome-hero { gap: 12px; padding: 20px 18px; }
       .welcome-logo-mark { width: 48px; height: 48px; flex-basis: 48px; border-radius: 15px; padding: 4px; }
       #welcome-title { font-size: 1rem; white-space: nowrap; }
