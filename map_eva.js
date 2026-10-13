@@ -1378,6 +1378,7 @@ function updateGpsTrainingUI() {
   statusElement.textContent = t(gpsTrainingStatusKey, gpsTrainingStatusVars);
 
   const isRecording = isGpsTrainingActive();
+  document.body.classList.toggle("gps-training-active", isRecording);
   const hasRoute = appMode === "evacuation" && latestDestination && gpsTrainingRoutePath.length >= 2;
   summaryElement.textContent = isRecording ? t("gps_training_active_title") : t("gps_training_title");
   startButton.disabled = isRecording || !hasRoute;

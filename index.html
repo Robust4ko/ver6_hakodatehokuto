@@ -732,6 +732,49 @@
       }
       .button-row { gap: 6px; }
 
+      /* 避難訓練中は地図を広く見せるため、下部欄を計測表示だけに縮める。 */
+      body.gps-training-active .info-area {
+        max-height: min(30vh, 220px);
+        padding: 5px 10px;
+      }
+      body.gps-training-active .info-area .inner > h2,
+      body.gps-training-active #nearest-destination,
+      body.gps-training-active .info-area .button-row,
+      body.gps-training-active .gps-training-description,
+      body.gps-training-active .gps-training-meta,
+      body.gps-training-active .gps-training-privacy,
+      body.gps-training-active #gps-training-start,
+      body.gps-training-active #gps-training-upload,
+      body.gps-training-active #gps-training-demo {
+        display: none;
+      }
+      body.gps-training-active #gps-training-panel {
+        margin-top: 0;
+        padding: 5px 8px;
+      }
+      body.gps-training-active .gps-training-stats {
+        gap: 4px;
+        margin: 5px 0;
+      }
+      body.gps-training-active .gps-training-stat {
+        padding: 4px 3px;
+      }
+      body.gps-training-active .gps-training-stat span { font-size: .68em; }
+      body.gps-training-active .gps-training-stat strong { font-size: .9em; }
+      body.gps-training-active .gps-training-actions { display: block; }
+      body.gps-training-active #gps-training-stop {
+        display: block;
+        width: 100%;
+        min-height: 36px;
+        padding: 6px;
+      }
+      body.gps-training-active #gps-training-status {
+        min-height: 0;
+        margin: 4px 0 0;
+        font-size: .72em;
+        line-height: 1.25;
+      }
+
       #building-form {
         top: 64px;
         left: 10px;
@@ -1055,7 +1098,7 @@
  <script src="./supabase_reports.js?v=20260930-1"></script>
  <script src="./supabase_buildings.js?v=20260910-1"></script>
  <script src="./supabase_gps.js?v=20260930-1"></script>
- <script src="./map_eva.js?v=20261013-1"></script>
+ <script src="./map_eva.js?v=20261013-2"></script>
 
   <!-- 固定欄の高さを実測し、CSS変数を更新 -->
   <script>
