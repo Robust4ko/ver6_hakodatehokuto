@@ -53,14 +53,133 @@
       display:flex;
       gap:8px;
     }
+    #help-button,
     #lang-toggle{
-      background:#eee; color:#333;
       border:1px solid #ccc; border-radius:8px;
       padding:6px 12px; font-weight:600; font-size:14px;
       line-height:1; cursor:pointer; transition:filter .15s;
     }
-    #lang-toggle:hover{ filter:brightness(0.96); }
-    #lang-toggle:focus-visible{ outline:2px solid #333; outline-offset:2px; }
+    #lang-toggle{ background:#eee; color:#333; }
+    #help-button{
+      min-width:34px;
+      padding-inline:9px;
+      border-color:rgba(255,255,255,.7);
+      border-radius:999px;
+      background:rgba(255,255,255,.18);
+      color:#fff;
+      font-size:16px;
+    }
+    #help-button:hover, #lang-toggle:hover{ filter:brightness(0.96); }
+    #help-button:focus-visible, #lang-toggle:focus-visible{ outline:2px solid #333; outline-offset:2px; }
+
+    /* 起動時の使い方案内 */
+    #welcome-dialog {
+      width: min(600px, calc(100% - 24px));
+      max-height: calc(100dvh - 24px);
+      box-sizing: border-box;
+      overflow: auto;
+      padding: 0;
+      border: 0;
+      border-radius: 22px;
+      background: #f4f8fc;
+      color: #111;
+      box-shadow: 0 22px 64px rgba(0, 30, 60, .38);
+    }
+    #welcome-dialog::backdrop {
+      background: rgba(7, 30, 52, .72);
+      backdrop-filter: blur(3px);
+    }
+    .welcome-hero {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      overflow: hidden;
+      padding: 25px 24px;
+      background: linear-gradient(135deg, #005fae 0%, #00a7df 58%, #19c4dc 100%);
+      color: #fff;
+    }
+    .welcome-hero::after {
+      content: "";
+      position: absolute;
+      right: -54px;
+      bottom: -76px;
+      width: 180px;
+      height: 180px;
+      border: 28px solid rgba(255, 255, 255, .1);
+      border-radius: 50%;
+    }
+    .welcome-logo-mark {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      width: 56px;
+      height: 56px;
+      flex: 0 0 56px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .7);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .2);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35);
+      padding: 5px;
+      box-sizing: border-box;
+    }
+    .welcome-logo-image { display: block; width: 100%; height: 100%; border-radius: 13px; }
+    .welcome-hero-copy { position: relative; z-index: 1; min-width: 0; }
+    .welcome-eyebrow {
+      margin: 0 0 5px;
+      color: rgba(255, 255, 255, .82);
+      font-size: .68rem;
+      font-weight: 800;
+      letter-spacing: .13em;
+    }
+    #welcome-title { margin: 0; color: #fff; font-size: 1.45rem; line-height: 1.35; }
+    #welcome-title:focus { outline: none; }
+    .welcome-intro { margin: 7px 0 0; color: rgba(255,255,255,.92); font-size: .92rem; line-height: 1.55; }
+    .welcome-dialog-inner { padding: 18px 22px 22px; }
+    .welcome-section-label { margin: 0 0 9px; color: #496175; font-size: .78rem; font-weight: 800; letter-spacing: .06em; }
+    .welcome-mode-list { display: grid; gap: 9px; }
+    .welcome-mode-item {
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      padding: 12px 13px;
+      border: 1px solid #d7e1ea;
+      border-radius: 13px;
+      background: #fff;
+      box-shadow: 0 3px 12px rgba(22, 63, 92, .07);
+    }
+    .welcome-mode-icon {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border-radius: 12px;
+    }
+    .welcome-mode-icon img { display: block; width: 27px; height: 27px; }
+    .welcome-mode-item.evacuation .welcome-mode-icon { background: #e4f2ff; color: #006fd6; }
+    .welcome-mode-item.report .welcome-mode-icon { background: #fff0d9; color: #b66100; }
+    .welcome-mode-item.tourism .welcome-mode-icon { background: #f0e8ff; color: #7040b7; }
+    .welcome-mode-copy { min-width: 0; }
+    .welcome-mode-item h3 { margin: 0 0 3px; color: #17364f; font-size: .98rem; }
+    .welcome-mode-item p { margin: 0; color: #516474; font-size: .84rem; line-height: 1.5; }
+    #welcome-start {
+      width: 100%;
+      min-height: 48px;
+      margin-top: 15px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #006fd6, #009fd5);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 7px 16px rgba(0, 111, 214, .22);
+    }
+    #welcome-start:hover { filter: brightness(.95); }
+    #welcome-start:focus-visible { outline: 3px solid #003f7d; outline-offset: 2px; }
+    .welcome-reopen-hint { margin: 10px 0 0; color: #6b7c89; font-size: .75rem; text-align: center; }
 
     /* 全体レイアウト：ヘッダー分の余白を上に確保 */
     .container {
@@ -304,6 +423,14 @@
     .community-report-popup dt { margin-top: 7px; font-weight: 700; }
     .community-report-popup dd { margin: 1px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
     .community-report-popup-edit { width: 100%; min-height: 40px; margin-top: 12px; border: 1px solid #006fd6; border-radius: 6px; background: #006fd6; color: #fff; font: inherit; cursor: pointer; }
+    .community-report-votes { margin-top: 12px; padding-top: 10px; border-top: 1px solid #ccc; }
+    .community-report-votes-title { margin: 0 0 7px; font-weight: 700; }
+    .community-report-vote-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .community-report-vote-button { min-height: 40px; border: 1px solid #777; border-radius: 6px; background: #fff; color: #222; font: inherit; font-weight: 700; cursor: pointer; }
+    .community-report-vote-button.agree.active { border-color: #16833b; background: #16833b; color: #fff; }
+    .community-report-vote-button.disagree.active { border-color: #c62828; background: #c62828; color: #fff; }
+    .community-report-vote-button:disabled { cursor: wait; opacity: .6; }
+    .community-report-vote-status { min-height: 1.3em; margin: 6px 0 0; color: #555; font-size: .78rem; }
     .community-report-editor label, .community-report-editor legend { font-weight: 700; }
     .community-report-editor select, .community-report-editor textarea { width: 100%; box-sizing: border-box; margin-top: 5px; padding: 8px; border: 1px solid #777; border-radius: 6px; font: inherit; }
     .community-report-editor fieldset { margin: 10px 0 0; padding: 8px; border: 1px solid #aaa; border-radius: 6px; }
@@ -521,7 +648,7 @@
     .gps-training-meta dd { margin: 0; overflow-wrap: anywhere; }
     .gps-training-stats {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 6px;
       margin: 8px 0;
     }
@@ -552,6 +679,18 @@
     #gps-training-stop { background: #c62828; }
 
     #gps-training-upload { background: #00695c; }
+    #gps-training-demo {
+      width: 100%;
+      margin-top: 6px;
+      padding: 8px;
+      border: 1px solid #455a64;
+      border-radius: 6px;
+      background: #fff;
+      color: #37474f;
+      font: inherit;
+      font-weight: 700;
+    }
+    #gps-training-demo:disabled { opacity: .45; cursor: default; }
     .gps-training-actions button:disabled { opacity: .45; cursor: default; }
     #gps-training-status { min-height: 1.3em; margin: 7px 0 0; font-size: .82em; }
 
@@ -573,6 +712,15 @@
     @media (max-width: 768px) {
       header#app-header h1 { font-size: 1em; }
       header#app-header .subtext { font-size: 0.7em; }
+      .header-actions { right: 8px; gap: 5px; }
+      #help-button, #lang-toggle { padding: 6px 9px; font-size: 13px; }
+      .welcome-hero { gap: 12px; padding: 20px 18px; }
+      .welcome-logo-mark { width: 48px; height: 48px; flex-basis: 48px; border-radius: 15px; padding: 4px; }
+      #welcome-title { font-size: 1.2rem; }
+      .welcome-intro { font-size: .83rem; }
+      .welcome-dialog-inner { padding: 15px 16px 18px; }
+      .welcome-mode-item { grid-template-columns: 42px minmax(0, 1fr); gap: 10px; padding: 10px 11px; }
+      .welcome-mode-icon { width: 39px; height: 39px; }
       /* GPS欄を開いても上部の地図操作を覆わない。内容は欄内でスクロールする。 */
       .info-area {
         font-size: 0.85em;
@@ -653,9 +801,52 @@
     <h1 data-i18n="header_title">津波避難支援アプリ　逃げるーと</h1>
     <p class="subtext" data-i18n="header_subtext">📍 地図をクリックすると避難経路を表示します</p>
     <div class="header-actions">
+      <button id="help-button" type="button" aria-haspopup="dialog" aria-controls="welcome-dialog" aria-label="使い方を表示">?</button>
       <button id="lang-toggle" type="button" aria-label="Switch language">EN</button>
     </div>
   </header>
+
+  <!-- 起動時に表示する使い方案内 -->
+  <dialog id="welcome-dialog" aria-labelledby="welcome-title">
+    <div class="welcome-hero">
+      <div class="welcome-logo-mark" aria-hidden="true">
+        <img class="welcome-logo-image" src="./evacuation_destination.svg" alt="">
+      </div>
+      <div class="welcome-hero-copy">
+        <p class="welcome-eyebrow" data-i18n="welcome_eyebrow">TSUNAMI EVACUATION SUPPORT</p>
+        <h2 id="welcome-title" tabindex="-1" data-i18n="welcome_title">『逃げるーと』を使ってみよう！</h2>
+        <p class="welcome-intro" data-i18n="welcome_intro">避難・地域情報・観光を、ひとつの地図で確認できます。</p>
+      </div>
+    </div>
+    <div class="welcome-dialog-inner">
+      <p class="welcome-section-label" data-i18n="welcome_modes_label">3つのモード</p>
+      <div class="welcome-mode-list">
+        <section class="welcome-mode-item evacuation">
+          <span class="welcome-mode-icon" aria-hidden="true"><img src="./onboarding_evacuation.svg" alt=""></span>
+          <div class="welcome-mode-copy">
+            <h3 data-i18n="welcome_evacuation_title">避難する</h3>
+            <p data-i18n="welcome_evacuation_text">出発地点を選ぶと、近くの避難先と徒歩経路を表示します。</p>
+          </div>
+        </section>
+        <section class="welcome-mode-item report">
+          <span class="welcome-mode-icon" aria-hidden="true"><img src="./onboarding_report.svg" alt=""></span>
+          <div class="welcome-mode-copy">
+            <h3 data-i18n="welcome_report_title">地域情報を投稿</h3>
+            <p data-i18n="welcome_report_text">まちで気づいた道路の情報を、地図上の地点に投稿できます。</p>
+          </div>
+        </section>
+        <section class="welcome-mode-item tourism">
+          <span class="welcome-mode-icon" aria-hidden="true"><img src="./onboarding_tourism.svg" alt=""></span>
+          <div class="welcome-mode-copy">
+            <h3 data-i18n="welcome_tourism_title">観光マップ</h3>
+            <p data-i18n="welcome_tourism_text">函館の主な観光地を、種類ごとに探せます。</p>
+          </div>
+        </section>
+      </div>
+      <button id="welcome-start" type="button" data-i18n="welcome_start">地図を開く</button>
+      <p class="welcome-reopen-hint" data-i18n="welcome_reopen_hint">この案内は右上の「？」からいつでも確認できます。</p>
+    </div>
+  </dialog>
 
   <div class="container">
     <div class="map-area">
@@ -787,8 +978,8 @@
           </button>
         </div>
         <details id="gps-training-panel">
-          <summary data-i18n="gps_training_title">GPS記録</summary>
-          <p class="gps-training-description" data-i18n="gps_training_description">歩いた軌跡と時間をこの画面で記録します。</p>
+          <summary id="gps-training-summary" data-i18n="gps_training_title">避難訓練</summary>
+          <p class="gps-training-description" data-i18n="gps_training_description">避難経路を表示してから訓練を開始してください。移動経路と時間を記録します。</p>
           <dl class="gps-training-meta">
             <dt data-i18n="gps_training_id">訓練番号</dt><dd id="gps-training-id">―</dd>
             <dt data-i18n="gps_training_started_at">開始時刻</dt><dd id="gps-training-started-at">―</dd>
@@ -798,14 +989,16 @@
             <div class="gps-training-stat"><span data-i18n="gps_training_elapsed">経過時間</span><strong id="gps-training-elapsed">00:00</strong></div>
             <div class="gps-training-stat"><span data-i18n="gps_training_distance">移動距離（概算）</span><strong id="gps-training-distance">0 m</strong></div>
             <div class="gps-training-stat"><span data-i18n="gps_training_points">記録地点</span><strong id="gps-training-points">0</strong></div>
+            <div class="gps-training-stat"><span data-i18n="gps_training_route_remaining">経路の残り（概算）</span><strong id="gps-training-route-remaining">―</strong></div>
           </div>
           <div class="gps-training-actions">
-            <button id="gps-training-start" type="button" data-i18n="gps_training_start">記録開始</button>
-            <button id="gps-training-stop" type="button" disabled data-i18n="gps_training_stop">記録終了</button>
+            <button id="gps-training-start" type="button" data-i18n="gps_training_start">避難訓練を開始</button>
+            <button id="gps-training-stop" type="button" disabled data-i18n="gps_training_stop">訓練終了</button>
 
             <button id="gps-training-upload" type="button" disabled data-i18n="gps_training_upload">保存する</button>
           </div>
-          <p id="gps-training-status" role="status" aria-live="polite" data-i18n="gps_training_idle">記録を開始すると位置情報の許可を求めます。</p>
+          <button id="gps-training-demo" type="button" hidden data-i18n="gps_training_demo_start">画面確認用デモ</button>
+          <p id="gps-training-status" role="status" aria-live="polite" data-i18n="gps_training_idle">出発地点を選び、避難経路を表示してください。</p>
           <p class="gps-training-privacy" data-i18n="gps_training_privacy">位置情報は「保存する」を押したときだけ送信されます。</p>
         </details>
       </div>
@@ -859,10 +1052,10 @@
 
   <!-- アプリ本体 -->
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
- <script src="./supabase_reports.js?v=20260910-6"></script>
+ <script src="./supabase_reports.js?v=20260930-1"></script>
  <script src="./supabase_buildings.js?v=20260910-1"></script>
  <script src="./supabase_gps.js?v=20260930-1"></script>
- <script src="./map_eva.js?v=20260930-3"></script>
+ <script src="./map_eva.js?v=20261013-1"></script>
 
   <!-- 固定欄の高さを実測し、CSS変数を更新 -->
   <script>

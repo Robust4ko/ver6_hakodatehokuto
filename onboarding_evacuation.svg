@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">避難経路</title>
+  <desc id="desc">出発地点から避難先へ向かう経路を表すピクトグラム</desc>
+  <g fill="none" stroke="#006fd6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="36" r="4" fill="#006fd6" stroke="none"/>
+    <path d="M15 35c7 0 6-10 13-10h4" stroke-dasharray="3.5 4"/>
+    <path d="M34 18l7 7-7 7"/>
+    <path d="M41 25H31"/>
+    <path d="M19 11h10v8H19z"/>
+    <path d="M22 19v5m4-5v5"/>
+  </g>
+</svg>

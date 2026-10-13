@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">観光マップ</title>
+  <desc id="desc">観光地を撮影するカメラを表すピクトグラム</desc>
+  <g fill="none" stroke="#7040b7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 16h8l3-5h10l3 5h8v23H8z"/>
+    <circle cx="24" cy="27" r="7"/>
+    <path d="M35 21h.01" stroke-width="4"/>
+  </g>
+</svg>

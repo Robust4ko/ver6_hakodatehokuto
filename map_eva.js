@@ -14,6 +14,8 @@ let latestDestination = null;
 let appMode = "evacuation";
 const IS_BUILDING_ADMIN_VIEW =
   new URLSearchParams(window.location.search).get("admin") === "1";
+const IS_TRAINING_DEMO_VIEW =
+  new URLSearchParams(window.location.search).get("training_demo") === "1";
 let isSelectingBuildingLocation = false;
 let buildingLocation = null;
 let buildingLocationMarker = null;
@@ -44,6 +46,13 @@ let gpsTrainingSessionId = "";
 let gpsTrainingStatusKey = "gps_training_idle";
 let gpsTrainingStatusVars = {};
 let gpsTrainingDatabaseState = "idle";
+let gpsTrainingWakeLock = null;
+let gpsTrainingRoutePath = [];
+let gpsTrainingRouteRemainingMeters = [];
+let gpsTrainingRouteDestination = null;
+let gpsTrainingDemoTimerId = null;
+let gpsTrainingDemoCursor = 0;
+let gpsTrainingIsDemo = false;
 
 const PRIMARY_RADIUS_M = 700;
 const FALLBACK_RADIUS_M = 500;
@@ -75,6 +84,19 @@ const I18N = {
     mode_evacuate: "避難する",
     mode_report: "地域情報を投稿",
     mode_tourism: "観光マップ",
+    welcome_help: "使い方を表示",
+    welcome_eyebrow: "TSUNAMI EVACUATION SUPPORT",
+    welcome_title: "『逃げるーと』を使ってみよう！",
+    welcome_intro: "避難・地域情報・観光を、ひとつの地図で確認できます。",
+    welcome_modes_label: "3つのモード",
+    welcome_evacuation_title: "避難する",
+    welcome_evacuation_text: "出発地点を選ぶと、近くの避難先と徒歩経路を表示します。",
+    welcome_report_title: "地域情報を投稿",
+    welcome_report_text: "まちで気づいた道路の情報を、地図上の地点に投稿できます。",
+    welcome_tourism_title: "観光マップ",
+    welcome_tourism_text: "函館の主な観光地を、種類ごとに探せます。",
+    welcome_start: "地図を開く",
+    welcome_reopen_hint: "この案内は右上の「？」からいつでも確認できます。",
     tourism_filter_all: "すべて",
     tourism_filter_history: "歴史・文化",
     tourism_filter_scenery: "景観・街歩き",
@@ -145,6 +167,13 @@ const I18N = {
     report_saved_marker: "投稿地点：{answer}",
     report_popup_title: "この地点の投稿",
     report_popup_answer: "回答",
+    report_vote_title: "この投稿を評価",
+    report_vote_agree: "賛成 {count}",
+    report_vote_disagree: "反対 {count}",
+    report_vote_loading: "評価を読み込み中…",
+    report_vote_saving: "保存中…",
+    report_vote_failed: "評価を保存できませんでした。",
+    report_vote_hint: "同じ評価を再度押すと取り消せます。",
     report_owner_edit: "この投稿を編集",
     report_update: "変更を保存",
     report_update_saving: "保存中…",
@@ -217,19 +246,25 @@ const I18N = {
     building_form_saving: "共有データへ保存中…",
     building_form_save_failed: "共有データへの保存に失敗しました。入力を残しています。",
     building_form_saved: "{name}を共有避難ビルとして追加しました。",
-    gps_training_title: "GPS記録",
-    gps_training_description: "歩いた軌跡と時間をこの画面で記録します。",
+    gps_training_title: "避難訓練",
+    gps_training_description: "避難経路を表示してから訓練を開始してください。移動経路と時間を記録します。",
     gps_training_id: "訓練番号",
     gps_training_started_at: "開始時刻",
     gps_training_ended_at: "終了時刻",
     gps_training_elapsed: "経過時間",
     gps_training_distance: "移動距離（概算）",
     gps_training_points: "記録地点",
-    gps_training_start: "記録開始",
-    gps_training_stop: "記録終了",
+    gps_training_route_remaining: "経路の残り（概算）",
+    gps_training_start: "避難訓練を開始",
+    gps_training_stop: "訓練終了",
 
     gps_training_upload: "保存する",
-    gps_training_idle: "記録を開始すると位置情報の許可を求めます。",
+    gps_training_idle: "出発地点を選び、避難経路を表示してください。",
+    gps_training_active_title: "避難訓練中",
+    gps_training_select_route: "先に地図上で出発地点を選び、避難経路を表示してください。",
+    gps_training_demo_start: "画面確認用デモ",
+    gps_training_demo_recording: "デモ走行中です。GPSとデータベース保存は使用していません。",
+    gps_training_demo_finished: "画面確認用デモが終了しました。データは保存されません。",
     gps_training_starting: "現在位置を確認しています。画面を開いたままお待ちください。",
     gps_training_recording: "GPSを記録中です（現在の精度：約±{accuracy}m）。",
     gps_training_finished: "記録を終了しました。保存できます。",
@@ -267,6 +302,19 @@ const I18N = {
     mode_evacuate: "Evacuate",
     mode_report: "Report local info",
     mode_tourism: "Tourism map",
+    welcome_help: "Show instructions",
+    welcome_eyebrow: "TSUNAMI EVACUATION SUPPORT",
+    welcome_title: "Try NigeRoute!",
+    welcome_intro: "Explore evacuation, local reports and sightseeing on one map.",
+    welcome_modes_label: "THREE MODES",
+    welcome_evacuation_title: "Evacuate",
+    welcome_evacuation_text: "Choose a starting point to see a nearby evacuation destination and walking route.",
+    welcome_report_title: "Report local info",
+    welcome_report_text: "Share road information you notice around town at a point on the map.",
+    welcome_tourism_title: "Tourism map",
+    welcome_tourism_text: "Browse major tourist spots in Hakodate by category.",
+    welcome_start: "Open the map",
+    welcome_reopen_hint: "You can open this guide again anytime from the “?” button.",
     tourism_filter_all: "All",
     tourism_filter_history: "History & culture",
     tourism_filter_scenery: "Scenery & walking",
@@ -337,6 +385,13 @@ const I18N = {
     report_saved_marker: "Reported location: {answer}",
     report_popup_title: "Report at this location",
     report_popup_answer: "Answer",
+    report_vote_title: "Rate this report",
+    report_vote_agree: "Agree {count}",
+    report_vote_disagree: "Disagree {count}",
+    report_vote_loading: "Loading ratings…",
+    report_vote_saving: "Saving…",
+    report_vote_failed: "Could not save your rating.",
+    report_vote_hint: "Select the same rating again to remove it.",
     report_owner_edit: "Edit this report",
     report_update: "Save changes",
     report_update_saving: "Saving…",
@@ -409,19 +464,25 @@ const I18N = {
     building_form_saving: "Saving to shared data…",
     building_form_save_failed: "Could not save to shared data. Your input has been retained.",
     building_form_saved: "{name} was added as a shared evacuation building.",
-    gps_training_title: "GPS recording",
-    gps_training_description: "Record your walking route and time on this screen.",
+    gps_training_title: "Evacuation training",
+    gps_training_description: "Display an evacuation route, then start training. Your route and time will be recorded.",
     gps_training_id: "Training ID",
     gps_training_started_at: "Started at",
     gps_training_ended_at: "Ended at",
     gps_training_elapsed: "Elapsed time",
     gps_training_distance: "Distance (estimate)",
     gps_training_points: "Recorded points",
-    gps_training_start: "Start recording",
-    gps_training_stop: "Stop recording",
+    gps_training_route_remaining: "Route remaining (estimate)",
+    gps_training_start: "Start evacuation training",
+    gps_training_stop: "End training",
 
     gps_training_upload: "Save",
-    gps_training_idle: "Starting a recording will request permission to use your location.",
+    gps_training_idle: "Choose a start point and display an evacuation route first.",
+    gps_training_active_title: "Evacuation training in progress",
+    gps_training_select_route: "Choose a start point and display an evacuation route first.",
+    gps_training_demo_start: "Preview training screen",
+    gps_training_demo_recording: "Demo in progress. GPS and database saving are not being used.",
+    gps_training_demo_finished: "The preview demo has finished. No data was saved.",
     gps_training_starting: "Finding your current location. Keep this screen open.",
     gps_training_recording: "Recording GPS (current accuracy: about ±{accuracy} m).",
     gps_training_finished: "Recording finished. You can now save it.",
@@ -492,6 +553,34 @@ function applyI18nToUI(){
     btn.textContent = (LANG === "ja" ? "EN" : "日");
     btn.setAttribute("aria-label", LANG === "ja" ? "Switch to English" : "日本語に切り替え");
   }
+  const helpBtn = document.getElementById("help-button");
+  if (helpBtn) {
+    helpBtn.setAttribute("aria-label", t("welcome_help"));
+    helpBtn.setAttribute("title", t("welcome_help"));
+  }
+}
+
+function setupWelcomeDialog() {
+  const dialog = document.getElementById("welcome-dialog");
+  const helpButton = document.getElementById("help-button");
+  const startButton = document.getElementById("welcome-start");
+  const title = document.getElementById("welcome-title");
+  if (!dialog || !helpButton || !startButton) return;
+
+  const openDialog = () => {
+    if (dialog.open) return;
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+    window.requestAnimationFrame(() => title?.focus());
+  };
+  const closeDialog = () => {
+    if (typeof dialog.close === "function") dialog.close();
+    else dialog.removeAttribute("open");
+  };
+
+  helpButton.addEventListener("click", openDialog);
+  startButton.addEventListener("click", closeDialog);
+  openDialog();
 }
 
 /* ========== Utils ========== */
@@ -568,6 +657,7 @@ function initMap() {
       }
     });
   }
+  setupWelcomeDialog();
 
   // 津波浸水想定域（GeoJSON）
   map.data.loadGeoJson("./tsunami.geojson");
@@ -1091,8 +1181,78 @@ function attemptWithRadius(originLatLng, radiusMeters, isFallback) {
   );
 }
 
+function clearGpsTrainingRouteDistance() {
+  gpsTrainingRoutePath = [];
+  gpsTrainingRouteRemainingMeters = [];
+  gpsTrainingRouteDestination = null;
+  updateGpsTrainingUI();
+}
+
+function setGpsTrainingRouteDistance(route, destination) {
+  const rawPath = [];
+  (route?.legs || []).forEach((leg) => {
+    (leg.steps || []).forEach((step) => {
+      (step.path || []).forEach((latLng) => rawPath.push(latLng));
+    });
+  });
+  if (rawPath.length < 2) {
+    (route?.overview_path || []).forEach((latLng) => rawPath.push(latLng));
+  }
+  const path = rawPath.map((latLng) => ({
+    lat: typeof latLng.lat === "function" ? latLng.lat() : Number(latLng.lat),
+    lng: typeof latLng.lng === "function" ? latLng.lng() : Number(latLng.lng),
+  })).filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+  gpsTrainingRouteDestination = destination
+    ? { lat: Number(destination.lat), lng: Number(destination.lng) }
+    : null;
+  gpsTrainingRoutePath = path.filter((point, index) =>
+    index === 0 || getDistanceInMeters(path[index - 1], point) >= 0.2
+  );
+  gpsTrainingRouteRemainingMeters = new Array(gpsTrainingRoutePath.length).fill(0);
+  for (let index = gpsTrainingRoutePath.length - 2; index >= 0; index -= 1) {
+    gpsTrainingRouteRemainingMeters[index] =
+      gpsTrainingRouteRemainingMeters[index + 1] +
+      getDistanceInMeters(gpsTrainingRoutePath[index], gpsTrainingRoutePath[index + 1]);
+  }
+  updateGpsTrainingUI();
+}
+
+function calculateGpsTrainingRouteRemaining(point) {
+  if (gpsTrainingRoutePath.length < 2) return null;
+  const latitudeScale = 111320;
+  const longitudeScale = Math.max(1, 111320 * Math.cos(point.lat * Math.PI / 180));
+  let nearestDistance = Infinity;
+  let remainingDistance = null;
+  for (let index = 0; index < gpsTrainingRoutePath.length - 1; index += 1) {
+    const start = gpsTrainingRoutePath[index];
+    const end = gpsTrainingRoutePath[index + 1];
+    const startX = (start.lng - point.lng) * longitudeScale;
+    const startY = (start.lat - point.lat) * latitudeScale;
+    const endX = (end.lng - point.lng) * longitudeScale;
+    const endY = (end.lat - point.lat) * latitudeScale;
+    const segmentX = endX - startX;
+    const segmentY = endY - startY;
+    const segmentLengthSquared = segmentX ** 2 + segmentY ** 2;
+    const ratio = segmentLengthSquared > 0
+      ? Math.max(0, Math.min(1, -(startX * segmentX + startY * segmentY) / segmentLengthSquared))
+      : 0;
+    const projected = {
+      lat: start.lat + (end.lat - start.lat) * ratio,
+      lng: start.lng + (end.lng - start.lng) * ratio,
+    };
+    const distanceToRoute = getDistanceInMeters(point, projected);
+    if (distanceToRoute < nearestDistance) {
+      nearestDistance = distanceToRoute;
+      remainingDistance =
+        getDistanceInMeters(projected, end) + gpsTrainingRouteRemainingMeters[index + 1];
+    }
+  }
+  return nearestDistance <= 100 ? remainingDistance : null;
+}
+
 /* ========== 経路描画 ========== */
 function drawRoute(origin, destination) {
+  clearGpsTrainingRouteDistance();
   directionsService.route(
     {
       origin: origin,
@@ -1103,6 +1263,7 @@ function drawRoute(origin, destination) {
       if (appMode !== "evacuation") return;
       if (status === google.maps.DirectionsStatus.OK) {
         directionsRenderer.setDirections(result);
+        setGpsTrainingRouteDistance(result.routes?.[0], destination);
         if (latestDestination && lastDistanceMeters != null && lastDurationText != null) {
           showNearestMessage(latestDestination, lastDistanceMeters, lastDurationText);
         } else if (latestDestination) {
@@ -1169,21 +1330,28 @@ function formatGpsTrainingDistance(meters) {
   return `${(meters / 1000).toFixed(2)} km`;
 }
 
+function isGpsTrainingActive() {
+  return gpsTrainingWatchId !== null || gpsTrainingDemoTimerId !== null;
+}
+
 function updateGpsTrainingUI() {
+  const summaryElement = document.getElementById("gps-training-summary");
   const idElement = document.getElementById("gps-training-id");
   const startedAtElement = document.getElementById("gps-training-started-at");
   const endedAtElement = document.getElementById("gps-training-ended-at");
   const elapsedElement = document.getElementById("gps-training-elapsed");
   const distanceElement = document.getElementById("gps-training-distance");
   const pointsElement = document.getElementById("gps-training-points");
+  const routeRemainingElement = document.getElementById("gps-training-route-remaining");
   const statusElement = document.getElementById("gps-training-status");
   const startButton = document.getElementById("gps-training-start");
   const stopButton = document.getElementById("gps-training-stop");
+  const demoButton = document.getElementById("gps-training-demo");
 
   const uploadButton = document.getElementById("gps-training-upload");
-  if (!idElement || !startedAtElement || !endedAtElement ||
-      !elapsedElement || !distanceElement || !pointsElement || !statusElement ||
-      !startButton || !stopButton || !uploadButton) return;
+  if (!summaryElement || !idElement || !startedAtElement || !endedAtElement ||
+      !elapsedElement || !distanceElement || !pointsElement || !routeRemainingElement || !statusElement ||
+      !startButton || !stopButton || !demoButton || !uploadButton) return;
 
   const endTime = gpsTrainingStoppedAt || Date.now();
   const elapsed = gpsTrainingStartedAt ? endTime - gpsTrainingStartedAt : 0;
@@ -1198,13 +1366,26 @@ function updateGpsTrainingUI() {
   elapsedElement.textContent = formatGpsTrainingDuration(elapsed);
   distanceElement.textContent = formatGpsTrainingDistance(gpsTrainingDistanceMeters);
   pointsElement.textContent = fmtNum(gpsTrainingPoints.length);
+  const latestPoint = gpsTrainingPoints[gpsTrainingPoints.length - 1];
+  const routeMatchesDestination = latestDestination?.location && gpsTrainingRouteDestination &&
+    getDistanceInMeters(latestDestination.location, gpsTrainingRouteDestination) <= 1;
+  const routeRemainingDistance = latestPoint && routeMatchesDestination
+    ? calculateGpsTrainingRouteRemaining({ lat: latestPoint.latitude, lng: latestPoint.longitude })
+    : null;
+  routeRemainingElement.textContent = Number.isFinite(routeRemainingDistance)
+    ? formatGpsTrainingDistance(routeRemainingDistance)
+    : "―";
   statusElement.textContent = t(gpsTrainingStatusKey, gpsTrainingStatusVars);
 
-  const isRecording = gpsTrainingWatchId !== null;
-  startButton.disabled = isRecording;
+  const isRecording = isGpsTrainingActive();
+  const hasRoute = appMode === "evacuation" && latestDestination && gpsTrainingRoutePath.length >= 2;
+  summaryElement.textContent = isRecording ? t("gps_training_active_title") : t("gps_training_title");
+  startButton.disabled = isRecording || !hasRoute;
   stopButton.disabled = !isRecording;
+  demoButton.hidden = !IS_TRAINING_DEMO_VIEW;
+  demoButton.disabled = isRecording || !hasRoute;
 
-  uploadButton.disabled = gpsTrainingPoints.length === 0 || isRecording ||
+  uploadButton.disabled = gpsTrainingPoints.length === 0 || isRecording || gpsTrainingIsDemo ||
     gpsTrainingDatabaseState === "saving" || gpsTrainingDatabaseState === "saved";
 }
 
@@ -1219,6 +1400,42 @@ function clearGpsTrainingMap() {
   gpsTrainingMarker?.setMap(null);
   gpsTrainingPolyline = null;
   gpsTrainingMarker = null;
+}
+
+async function requestGpsTrainingWakeLock() {
+  if (!("wakeLock" in navigator) || !isGpsTrainingActive() || gpsTrainingWakeLock) return;
+  try {
+    const wakeLock = await navigator.wakeLock.request("screen");
+    if (!isGpsTrainingActive()) {
+      await wakeLock.release();
+      return;
+    }
+    gpsTrainingWakeLock = wakeLock;
+    wakeLock.addEventListener("release", () => {
+      if (gpsTrainingWakeLock === wakeLock) gpsTrainingWakeLock = null;
+    }, { once: true });
+  } catch (error) {
+    // 非対応端末や省電力設定で拒否された場合も、GPS記録自体は継続する。
+    gpsTrainingWakeLock = null;
+  }
+}
+
+async function releaseGpsTrainingWakeLock() {
+  const wakeLock = gpsTrainingWakeLock;
+  gpsTrainingWakeLock = null;
+  if (!wakeLock) return;
+  try {
+    await wakeLock.release();
+  } catch (error) {
+    // すでにブラウザ側で解除済みの場合は何もしない。
+  }
+}
+
+function handleGpsTrainingVisibilityChange() {
+  // 画面へ戻ったとき、計測中なら自動消灯防止を再取得する。
+  if (document.visibilityState === "visible" && isGpsTrainingActive()) {
+    requestGpsTrainingWakeLock();
+  }
 }
 
 function handleGpsTrainingPosition(position) {
@@ -1284,9 +1501,13 @@ function handleGpsTrainingPosition(position) {
 
   map.panTo(latLng);
   if (gpsTrainingPoints.length === 1) map.setZoom(Math.max(map.getZoom() || 15, 17));
-  setGpsTrainingStatus("gps_training_recording", {
-    accuracy: Math.round(point.accuracy || 0),
-  });
+  if (gpsTrainingIsDemo) {
+    setGpsTrainingStatus("gps_training_demo_recording");
+  } else {
+    setGpsTrainingStatus("gps_training_recording", {
+      accuracy: Math.round(point.accuracy || 0),
+    });
+  }
 }
 
 function handleGpsTrainingError(error) {
@@ -1303,6 +1524,7 @@ function handleGpsTrainingError(error) {
   if (error?.code === 1 && gpsTrainingWatchId !== null) {
     navigator.geolocation.clearWatch(gpsTrainingWatchId);
     gpsTrainingWatchId = null;
+    releaseGpsTrainingWakeLock();
     if (gpsTrainingTimerId !== null) clearInterval(gpsTrainingTimerId);
     gpsTrainingTimerId = null;
     gpsTrainingStoppedAt = Date.now();
@@ -1325,11 +1547,15 @@ function createGpsTrainingSessionId(timestamp) {
 }
 
 function startGpsTraining() {
+  if (!latestDestination || gpsTrainingRoutePath.length < 2) {
+    setGpsTrainingStatus("gps_training_select_route");
+    return;
+  }
   if (!navigator.geolocation) {
     setGpsTrainingStatus("gps_training_unsupported");
     return;
   }
-  if (gpsTrainingWatchId !== null) return;
+  if (isGpsTrainingActive()) return;
 
   setAppMode("evacuation");
   clearGpsTrainingMap();
@@ -1339,6 +1565,8 @@ function startGpsTraining() {
   gpsTrainingStoppedAt = null;
   gpsTrainingSessionId = createGpsTrainingSessionId(gpsTrainingStartedAt);
   gpsTrainingDatabaseState = "idle";
+  gpsTrainingIsDemo = false;
+  document.getElementById("gps-training-panel").open = true;
   setGpsTrainingStatus("gps_training_starting");
 
   gpsTrainingWatchId = navigator.geolocation.watchPosition(
@@ -1346,22 +1574,63 @@ function startGpsTraining() {
     handleGpsTrainingError,
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
   );
+  requestGpsTrainingWakeLock();
   gpsTrainingTimerId = window.setInterval(updateGpsTrainingUI, 1000);
   updateGpsTrainingUI();
 }
 
+function startGpsTrainingDemo() {
+  if (!IS_TRAINING_DEMO_VIEW || !latestDestination || gpsTrainingRoutePath.length < 2 || isGpsTrainingActive()) {
+    if (!latestDestination || gpsTrainingRoutePath.length < 2) setGpsTrainingStatus("gps_training_select_route");
+    return;
+  }
+  setAppMode("evacuation");
+  clearGpsTrainingMap();
+  gpsTrainingPoints = [];
+  gpsTrainingDistanceMeters = 0;
+  gpsTrainingStartedAt = Date.now();
+  gpsTrainingStoppedAt = null;
+  gpsTrainingSessionId = `demo-${createGpsTrainingSessionId(gpsTrainingStartedAt)}`;
+  gpsTrainingDatabaseState = "idle";
+  gpsTrainingIsDemo = true;
+  gpsTrainingDemoCursor = 0;
+  document.getElementById("gps-training-panel").open = true;
+  const stepSize = Math.max(1, Math.ceil(gpsTrainingRoutePath.length / 40));
+  const advanceDemo = () => {
+    const routePoint = gpsTrainingRoutePath[Math.min(gpsTrainingDemoCursor, gpsTrainingRoutePath.length - 1)];
+    handleGpsTrainingPosition({
+      timestamp: Date.now(),
+      coords: { latitude: routePoint.lat, longitude: routePoint.lng, accuracy: 5, altitude: null, heading: null, speed: 1.2 },
+    });
+    if (gpsTrainingDemoCursor >= gpsTrainingRoutePath.length - 1) {
+      stopGpsTraining();
+      return;
+    }
+    gpsTrainingDemoCursor = Math.min(gpsTrainingRoutePath.length - 1, gpsTrainingDemoCursor + stepSize);
+  };
+  gpsTrainingDemoTimerId = window.setInterval(advanceDemo, 900);
+  gpsTrainingTimerId = window.setInterval(updateGpsTrainingUI, 1000);
+  setGpsTrainingStatus("gps_training_demo_recording");
+  requestGpsTrainingWakeLock();
+  advanceDemo();
+}
+
 function stopGpsTraining() {
-  if (gpsTrainingWatchId === null) return;
-  navigator.geolocation.clearWatch(gpsTrainingWatchId);
+  if (!isGpsTrainingActive()) return;
+  const wasDemo = gpsTrainingIsDemo;
+  if (gpsTrainingWatchId !== null) navigator.geolocation.clearWatch(gpsTrainingWatchId);
   gpsTrainingWatchId = null;
+  if (gpsTrainingDemoTimerId !== null) clearInterval(gpsTrainingDemoTimerId);
+  gpsTrainingDemoTimerId = null;
+  releaseGpsTrainingWakeLock();
   if (gpsTrainingTimerId !== null) clearInterval(gpsTrainingTimerId);
   gpsTrainingTimerId = null;
   gpsTrainingStoppedAt = Date.now();
-  setGpsTrainingStatus("gps_training_finished");
+  setGpsTrainingStatus(wasDemo ? "gps_training_demo_finished" : "gps_training_finished");
 }
 
 async function uploadGpsTrainingToDatabase() {
-  if (gpsTrainingWatchId !== null || gpsTrainingPoints.length === 0 ||
+  if (isGpsTrainingActive() || gpsTrainingIsDemo || gpsTrainingPoints.length === 0 ||
       gpsTrainingDatabaseState === "saving" || gpsTrainingDatabaseState === "saved") return;
   if (typeof saveGpsTrainingLog !== "function") {
     setGpsTrainingStatus("gps_training_upload_failed");
@@ -1388,8 +1657,10 @@ async function uploadGpsTrainingToDatabase() {
   }
 }
 function setupGpsTraining() {
+  document.addEventListener("visibilitychange", handleGpsTrainingVisibilityChange);
   document.getElementById("gps-training-start")?.addEventListener("click", startGpsTraining);
   document.getElementById("gps-training-stop")?.addEventListener("click", stopGpsTraining);
+  document.getElementById("gps-training-demo")?.addEventListener("click", startGpsTrainingDemo);
 
   document.getElementById("gps-training-upload")?.addEventListener("click", uploadGpsTrainingToDatabase);
   document.getElementById("gps-training-panel")?.addEventListener("toggle", () => {
@@ -1517,6 +1788,80 @@ function addCommunityReportMarker(report) {
   communityReportMarkers.push({ id, marker, report });
 }
 
+function createCommunityReportVoteUI(report) {
+  const section = document.createElement("div");
+  section.className = "community-report-votes";
+
+  const title = document.createElement("p");
+  title.className = "community-report-votes-title";
+  title.textContent = t("report_vote_title");
+
+  const actions = document.createElement("div");
+  actions.className = "community-report-vote-actions";
+  const agreeButton = document.createElement("button");
+  agreeButton.type = "button";
+  agreeButton.className = "community-report-vote-button agree";
+  const disagreeButton = document.createElement("button");
+  disagreeButton.type = "button";
+  disagreeButton.className = "community-report-vote-button disagree";
+
+  const status = document.createElement("p");
+  status.className = "community-report-vote-status";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+
+  let summary = { agree_count: 0, disagree_count: 0, my_vote: null };
+  let ready = false;
+  let busy = false;
+
+  const render = () => {
+    agreeButton.textContent = t("report_vote_agree", { count: fmtNum(summary.agree_count) });
+    disagreeButton.textContent = t("report_vote_disagree", { count: fmtNum(summary.disagree_count) });
+    agreeButton.classList.toggle("active", summary.my_vote === "agree");
+    disagreeButton.classList.toggle("active", summary.my_vote === "disagree");
+    agreeButton.setAttribute("aria-pressed", String(summary.my_vote === "agree"));
+    disagreeButton.setAttribute("aria-pressed", String(summary.my_vote === "disagree"));
+    agreeButton.disabled = busy || !ready;
+    disagreeButton.disabled = busy || !ready;
+  };
+
+  const loadVotes = async () => {
+    status.textContent = t("report_vote_loading");
+    render();
+    try {
+      summary = await loadCommunityReportVoteSummary(report.id);
+      ready = true;
+      status.textContent = t("report_vote_hint");
+    } catch (_) {
+      status.textContent = t("report_vote_failed");
+    }
+    render();
+  };
+
+  const submitVote = async (vote) => {
+    if (!ready || busy) return;
+    busy = true;
+    status.textContent = t("report_vote_saving");
+    render();
+    try {
+      const nextVote = summary.my_vote === vote ? null : vote;
+      summary = await setCommunityReportVote(report.id, nextVote);
+      status.textContent = t("report_vote_hint");
+    } catch (_) {
+      status.textContent = t("report_vote_failed");
+    } finally {
+      busy = false;
+      render();
+    }
+  };
+
+  agreeButton.addEventListener("click", () => submitVote("agree"));
+  disagreeButton.addEventListener("click", () => submitVote("disagree"));
+  actions.append(agreeButton, disagreeButton);
+  section.append(title, actions, status);
+  void loadVotes();
+  return section;
+}
 function openCommunityReportPopup(report, marker) {
   const content = document.createElement("div");
   content.className = "community-report-popup";
@@ -1543,6 +1888,7 @@ function openCommunityReportPopup(report, marker) {
   addDetail(t("report_comment"), String(report.comment || "").trim() || t("report_no_comment"));
 
   content.append(title, details);
+  content.appendChild(createCommunityReportVoteUI(report));
   if (communityCurrentUserId && report.contributor_user_id === communityCurrentUserId) {
     const editButton = document.createElement("button");
     editButton.type = "button";

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">地域情報の投稿</title>
+  <desc id="desc">地図上の地点にコメントを投稿することを表すピクトグラム</desc>
+  <g fill="none" stroke="#b66100" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 10h32v23H22l-8 7v-7H8z"/>
+    <circle cx="17" cy="22" r="1.8" fill="#b66100" stroke="none"/>
+    <circle cx="24" cy="22" r="1.8" fill="#b66100" stroke="none"/>
+    <circle cx="31" cy="22" r="1.8" fill="#b66100" stroke="none"/>
+  </g>
+</svg>
