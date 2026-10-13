@@ -77,6 +77,7 @@ const I18N = {
     header_subtext: "📍 地図をクリックすると避難経路を表示します",
     header_report_subtext: "📍 投稿する地点をタップしてください",
     header_tourism_subtext: "📍 函館の主な観光地を地図で確認します",
+    header_training_subtext: "📍 経路を選び、避難訓練を開始してください",
     info_title: "最短の避難先：",
     info_hint: "クリックして確認してください",
     btn_use_current: "現在地から避難",
@@ -87,14 +88,16 @@ const I18N = {
     welcome_help: "使い方を表示",
     welcome_eyebrow: "TSUNAMI EVACUATION SUPPORT",
     welcome_title: "『逃げるーと』を使ってみよう！",
-    welcome_intro: "避難・地域情報・観光を、ひとつの地図で確認できます。",
-    welcome_modes_label: "3つのモード",
+    welcome_intro: "避難・地域情報・観光・避難訓練を、ひとつの地図で利用できます。",
+    welcome_modes_label: "4つのモード",
     welcome_evacuation_title: "避難する",
     welcome_evacuation_text: "出発地点を選ぶと、近くの避難先と徒歩経路を表示します。",
     welcome_report_title: "地域情報を投稿",
     welcome_report_text: "まちで気づいた道路の情報を、地図上の地点に投稿できます。",
     welcome_tourism_title: "観光マップ",
-    welcome_tourism_text: "函館の主な観光地を、種類ごとに探せます。",
+    welcome_tourism_text: "函館の観光地を種類ごとに探せます。",
+    welcome_training_title: "避難訓練を始める",
+    welcome_training_text: "経路を選び、GPSで時間と移動経路を記録します。",
     welcome_start: "地図を開く",
     welcome_reopen_hint: "この案内は右上の「？」からいつでも確認できます。",
     tourism_filter_all: "すべて",
@@ -261,13 +264,15 @@ const I18N = {
     gps_training_upload: "保存する",
     gps_training_idle: "出発地点を選び、避難経路を表示してください。",
     gps_training_active_title: "避難訓練中",
+    gps_training_result_title: "訓練結果",
+    gps_training_saved_title: "保存完了",
     gps_training_select_route: "先に地図上で出発地点を選び、避難経路を表示してください。",
     gps_training_demo_start: "画面確認用デモ",
     gps_training_demo_recording: "デモ走行中です。GPSとデータベース保存は使用していません。",
     gps_training_demo_finished: "画面確認用デモが終了しました。データは保存されません。",
     gps_training_starting: "現在位置を確認しています。画面を開いたままお待ちください。",
     gps_training_recording: "GPSを記録中です（現在の精度：約±{accuracy}m）。",
-    gps_training_finished: "記録を終了しました。保存できます。",
+    gps_training_finished: "記録を終了しました。「保存する」を押してください。",
 
     gps_training_uploading: "GPSログをデータベースへ保存しています。",
     gps_training_uploaded: "GPSログをデータベースへ保存しました。",
@@ -295,6 +300,7 @@ const I18N = {
     header_subtext: "📍 Click the map to show an evacuation route",
     header_report_subtext: "📍 Tap a location to report",
     header_tourism_subtext: "📍 View major tourist spots in Hakodate",
+    header_training_subtext: "📍 Choose a route, then start evacuation training",
     info_title: "Nearest shelter:",
     info_hint: "Tap the map to start",
     btn_use_current: "Evacuate from current location",
@@ -305,14 +311,16 @@ const I18N = {
     welcome_help: "Show instructions",
     welcome_eyebrow: "TSUNAMI EVACUATION SUPPORT",
     welcome_title: "Try NigeRoute!",
-    welcome_intro: "Explore evacuation, local reports and sightseeing on one map.",
-    welcome_modes_label: "THREE MODES",
+    welcome_intro: "Use evacuation, local reports, sightseeing and training on one map.",
+    welcome_modes_label: "FOUR MODES",
     welcome_evacuation_title: "Evacuate",
     welcome_evacuation_text: "Choose a starting point to see a nearby evacuation destination and walking route.",
     welcome_report_title: "Report local info",
     welcome_report_text: "Share road information you notice around town at a point on the map.",
     welcome_tourism_title: "Tourism map",
     welcome_tourism_text: "Browse major tourist spots in Hakodate by category.",
+    welcome_training_title: "Start evacuation training",
+    welcome_training_text: "Choose a route and record your time and movement with GPS.",
     welcome_start: "Open the map",
     welcome_reopen_hint: "You can open this guide again anytime from the “?” button.",
     tourism_filter_all: "All",
@@ -479,13 +487,15 @@ const I18N = {
     gps_training_upload: "Save",
     gps_training_idle: "Choose a start point and display an evacuation route first.",
     gps_training_active_title: "Evacuation training in progress",
+    gps_training_result_title: "Training results",
+    gps_training_saved_title: "Saved",
     gps_training_select_route: "Choose a start point and display an evacuation route first.",
     gps_training_demo_start: "Preview training screen",
     gps_training_demo_recording: "Demo in progress. GPS and database saving are not being used.",
     gps_training_demo_finished: "The preview demo has finished. No data was saved.",
     gps_training_starting: "Finding your current location. Keep this screen open.",
     gps_training_recording: "Recording GPS (current accuracy: about ±{accuracy} m).",
-    gps_training_finished: "Recording finished. You can now save it.",
+    gps_training_finished: "Recording finished. Tap Save to complete.",
 
     gps_training_uploading: "Saving the GPS log to the database.",
     gps_training_uploaded: "The GPS log was saved to the database.",
@@ -564,8 +574,9 @@ function setupWelcomeDialog() {
   const dialog = document.getElementById("welcome-dialog");
   const helpButton = document.getElementById("help-button");
   const startButton = document.getElementById("welcome-start");
+  const trainingButton = document.getElementById("welcome-training-start");
   const title = document.getElementById("welcome-title");
-  if (!dialog || !helpButton || !startButton) return;
+  if (!dialog || !helpButton || !startButton || !trainingButton) return;
 
   const openDialog = () => {
     if (dialog.open) return;
@@ -580,6 +591,10 @@ function setupWelcomeDialog() {
 
   helpButton.addEventListener("click", openDialog);
   startButton.addEventListener("click", closeDialog);
+  trainingButton.addEventListener("click", () => {
+    setAppMode("training");
+    closeDialog();
+  });
   openDialog();
 }
 
@@ -701,7 +716,7 @@ function initMap() {
     }
 
     // 避難モード
-    if (appMode === "evacuation") {
+    if (isEvacuationRouteMode()) {
       setStartPoint(event.latLng);
       return;
     }
@@ -1142,7 +1157,7 @@ function attemptWithRadius(originLatLng, radiusMeters, isFallback) {
       travelMode: google.maps.TravelMode.WALKING,
     },
     (response, status) => {
-      if (appMode !== "evacuation") return;
+      if (!isEvacuationRouteMode()) return;
       const statusStr = String(status);
       const isMaxErr =
         statusStr === "MAX_DIMENSIONS_EXCEEDED" ||
@@ -1260,7 +1275,7 @@ function drawRoute(origin, destination) {
       travelMode: google.maps.TravelMode.WALKING,
     },
     (result, status) => {
-      if (appMode !== "evacuation") return;
+      if (!isEvacuationRouteMode()) return;
       if (status === google.maps.DirectionsStatus.OK) {
         directionsRenderer.setDirections(result);
         setGpsTrainingRouteDistance(result.routes?.[0], destination);
@@ -1378,9 +1393,18 @@ function updateGpsTrainingUI() {
   statusElement.textContent = t(gpsTrainingStatusKey, gpsTrainingStatusVars);
 
   const isRecording = isGpsTrainingActive();
-  document.body.classList.toggle("gps-training-active", isRecording);
-  const hasRoute = appMode === "evacuation" && latestDestination && gpsTrainingRoutePath.length >= 2;
-  summaryElement.textContent = isRecording ? t("gps_training_active_title") : t("gps_training_title");
+  const isTrainingMode = appMode === "training";
+  const isFinished = isTrainingMode && !isRecording && !gpsTrainingIsDemo && gpsTrainingStoppedAt !== null && gpsTrainingPoints.length > 0;
+  document.body.classList.toggle("gps-training-active", isTrainingMode && isRecording);
+  document.body.classList.toggle("gps-training-finished", isFinished);
+  const hasRoute = isTrainingMode && latestDestination && gpsTrainingRoutePath.length >= 2;
+  summaryElement.textContent = isRecording
+    ? t("gps_training_active_title")
+    : gpsTrainingDatabaseState === "saved"
+      ? t("gps_training_saved_title")
+      : isFinished
+        ? t("gps_training_result_title")
+        : t("gps_training_title");
   startButton.disabled = isRecording || !hasRoute;
   stopButton.disabled = !isRecording;
   demoButton.hidden = !IS_TRAINING_DEMO_VIEW;
@@ -1558,7 +1582,7 @@ function startGpsTraining() {
   }
   if (isGpsTrainingActive()) return;
 
-  setAppMode("evacuation");
+  setAppMode("training");
   clearGpsTrainingMap();
   gpsTrainingPoints = [];
   gpsTrainingDistanceMeters = 0;
@@ -1585,7 +1609,7 @@ function startGpsTrainingDemo() {
     if (!latestDestination || gpsTrainingRoutePath.length < 2) setGpsTrainingStatus("gps_training_select_route");
     return;
   }
-  setAppMode("evacuation");
+  setAppMode("training");
   clearGpsTrainingMap();
   gpsTrainingPoints = [];
   gpsTrainingDistanceMeters = 0;
@@ -2308,12 +2332,18 @@ function setupReportDialog() {
 
 /* ========== アプリモード切り替え ========== */
 
+function isEvacuationRouteMode() {
+  return appMode === "evacuation" || appMode === "training";
+}
+
 // 現在のモードと言語に合わせて、ヘッダーの操作案内だけを更新する。
 function updateModeGuidance() {
   const hint = document.querySelector('#app-header [data-i18n="header_subtext"]');
   const guidanceKey = appMode === "report"
     ? "header_report_subtext"
-    : appMode === "tourism" ? "header_tourism_subtext" : "header_subtext";
+    : appMode === "tourism"
+      ? "header_tourism_subtext"
+      : appMode === "training" ? "header_training_subtext" : "header_subtext";
   if (hint) hint.textContent = t(guidanceKey);
   // 文の折り返しで高さが変わった場合も、地図がヘッダーに隠れないようにする。
   if (typeof updateLayoutHeightVars === "function") updateLayoutHeightVars();
@@ -2321,7 +2351,8 @@ function updateModeGuidance() {
 
 function setAppMode(mode) {
   if (reportSubmitState === "sending") return;
-  appMode = ["report", "tourism"].includes(mode) ? mode : "evacuation";
+  if (isGpsTrainingActive() && mode !== "training") return;
+  appMode = ["report", "tourism", "training"].includes(mode) ? mode : "evacuation";
   setEvacuationMarkerEmphasisForMode(appMode === "tourism");
   setCommunityReportMarkersVisible(appMode === "report");
   setTouristSpotMarkersVisible(appMode === "tourism");
@@ -2333,14 +2364,14 @@ function setAppMode(mode) {
   if (reportLegend) reportLegend.hidden = appMode !== "report";
   const destinationLegend = document.getElementById("destination-map-legend");
   if (destinationLegend) {
-    destinationLegend.hidden = appMode !== "evacuation";
+    destinationLegend.hidden = !isEvacuationRouteMode();
   }
   const buildingListPanel = document.getElementById("building-list-panel");
   if (buildingListPanel) {
-    buildingListPanel.hidden = appMode === "tourism";
-    if (appMode === "tourism") buildingListPanel.open = false;
+    buildingListPanel.hidden = appMode === "tourism" || appMode === "training";
+    if (appMode === "tourism" || appMode === "training") buildingListPanel.open = false;
   }
-  if (appMode !== "evacuation") {
+  if (!isEvacuationRouteMode()) {
     clearBuildingLocation();
     if (startMarker) startMarker.setMap(null);
     startMarker = null;
@@ -2356,6 +2387,12 @@ function setAppMode(mode) {
   if (buildingForm) {
     buildingForm.hidden = !IS_BUILDING_ADMIN_VIEW || appMode !== "evacuation";
   }
+  const trainingPanel = document.getElementById("gps-training-panel");
+  if (trainingPanel) {
+    trainingPanel.hidden = appMode !== "training";
+    if (appMode === "training") trainingPanel.open = true;
+  }
+  updateGpsTrainingUI();
   updateModeGuidance();
   if (appMode !== "report") {
     clearReportDraft();
