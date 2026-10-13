@@ -718,12 +718,38 @@
     @media (max-width: 768px) {
       header#app-header {
         box-sizing: border-box;
-        padding: 6px 104px 6px 8px;
+        padding: 6px 8px;
       }
       header#app-header h1 { font-size: 1em; }
-      header#app-header .subtext { font-size: 0.7em; }
-      .header-actions { right: 10px; gap: 10px; }
-      #help-button, #lang-toggle { padding: 6px 8px; font-size: 13px; }
+      header#app-header .subtext { font-size: 0.66em; }
+      .header-actions {
+        right: 8px;
+        gap: 0;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, .72);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .14);
+      }
+      #help-button, #lang-toggle {
+        height: 30px;
+        min-width: 32px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        font-size: 13px;
+      }
+      #help-button {
+        min-width: 32px;
+        padding: 0 7px;
+        font-size: 15px;
+      }
+      #lang-toggle {
+        min-width: 36px;
+        border-left: 1px solid rgba(255, 255, 255, .6);
+        background: rgba(255, 255, 255, .9);
+        color: #333;
+      }
       .welcome-hero { gap: 12px; padding: 20px 18px; }
       .welcome-logo-mark { width: 48px; height: 48px; flex-basis: 48px; border-radius: 15px; padding: 4px; }
       #welcome-title { font-size: 1rem; white-space: nowrap; }
