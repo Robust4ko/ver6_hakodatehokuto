@@ -296,8 +296,8 @@ const I18N = {
     nearest_fmt_with_type: "{name} [{type}] ({meters} m, about {duration})",
     drawing_fmt: "Showing route to {name}…",
     // UI labels
-    header_title: "Tsunami Evacuation Support App: NigeRoute",
-    header_subtext: "📍 Click the map to show an evacuation route",
+    header_title: "NigeRoute | Tsunami Evacuation App",
+    header_subtext: "📍 Tap the map for an evacuation route",
     header_report_subtext: "📍 Tap a location to report",
     header_tourism_subtext: "📍 View major tourist spots in Hakodate",
     header_training_subtext: "📍 Choose a route, then start evacuation training",
@@ -306,7 +306,7 @@ const I18N = {
     btn_use_current: "Evacuate from current location",
     btn_open_gmaps: "Open in Google Maps",
     mode_evacuate: "Evacuate",
-    mode_report: "Report local info",
+    mode_report: "Report info",
     mode_tourism: "Tourism map",
     welcome_help: "Show instructions",
     welcome_eyebrow: "TSUNAMI EVACUATION SUPPORT",
@@ -413,7 +413,7 @@ const I18N = {
     report_refreshing: "Refreshing…",
     report_refresh_done: "Report markers updated ({count}).",
     report_refresh_failed: "Could not refresh report markers.",
-    building_list_title: "Evacuation destination list",
+    building_list_title: "Evacuation list",
     building_list_count: "{count} evacuation destinations",
     building_list_filtered_count: "{visible} of {total} evacuation destinations",
     destination_filter_label: "Filter by type",
@@ -543,6 +543,7 @@ function showNearestMessage(dest, meters, durationText) {
   displayMessage(t(formatKey, { name, type, meters: fmtNum(meters), duration: durationText }));
 }
 function applyI18nToUI(){
+  document.documentElement.lang = LANG;
   document.querySelectorAll("[data-i18n]").forEach(el=>{
     const key = el.getAttribute("data-i18n");
     const txt = t(key);

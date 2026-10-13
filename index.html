@@ -750,6 +750,21 @@
         background: rgba(255, 255, 255, .9);
         color: #333;
       }
+      /* 英語は文字列が長いため、英語表示のときだけ上部をコンパクトにする。 */
+      html[lang="en"] header#app-header h1 {
+        font-size: .8em;
+        letter-spacing: 0;
+        white-space: nowrap;
+      }
+      html[lang="en"] header#app-header .subtext {
+        font-size: .62em;
+        white-space: nowrap;
+      }
+      html[lang="en"] .mode-button {
+        padding-inline: 6px;
+        font-size: .82rem;
+        white-space: nowrap;
+      }
       .welcome-hero { gap: 12px; padding: 20px 18px; }
       .welcome-logo-mark { width: 48px; height: 48px; flex-basis: 48px; border-radius: 15px; padding: 4px; }
       #welcome-title { font-size: 1rem; white-space: nowrap; }
@@ -1180,7 +1195,7 @@
  <script src="./supabase_reports.js?v=20260930-1"></script>
  <script src="./supabase_buildings.js?v=20260910-1"></script>
  <script src="./supabase_gps.js?v=20260930-1"></script>
- <script src="./map_eva.js?v=20261013-5"></script>
+ <script src="./map_eva.js?v=20261013-6"></script>
 
   <!-- 固定欄の高さを実測し、CSS変数を更新 -->
   <script>
