@@ -7555,8 +7555,8 @@
         <li class="training-intro-step">
           <span class="training-intro-step-number" aria-hidden="true">1</span>
           <div>
-            <strong data-training-ja="出発地点を選ぶ" data-training-en="Choose a starting point">出発地点を選ぶ</strong>
-            <p data-training-ja="地図をタップすると、近くの避難先と経路が表示されます。" data-training-en="Tap the map to see a nearby evacuation destination and route.">地図をタップすると、近くの避難先と経路が表示されます。</p>
+            <strong id="training-intro-step1-title" data-training-ja="現在地から避難先を探す" data-training-en="Find a route from your location">現在地から避難先を探す</strong>
+            <p id="training-intro-step1-text" data-training-ja="現在地から近くの避難先と経路を表示します。" data-training-en="Use your current location to show a nearby evacuation destination and route.">現在地から近くの避難先と経路を表示します。</p>
           </div>
         </li>
         <li class="training-intro-step">
@@ -7575,7 +7575,7 @@
         </li>
       </ol>
       <div class="training-intro-actions">
-        <button id="training-intro-go" type="button" data-training-ja="地図で経路を選ぶ" data-training-en="Choose a route on the map">地図で経路を選ぶ</button>
+        <button id="training-intro-go" type="button" data-training-ja="現在地から避難先を探す" data-training-en="Find a route from my location">現在地から避難先を探す</button>
         <button id="training-intro-back" type="button" data-training-ja="前の画面へ" data-training-en="Back">前の画面へ</button>
       </div>
     </div>
@@ -10601,7 +10601,19 @@
       const goButton = document.getElementById("training-intro-go");
       const backButton = document.getElementById("training-intro-back");
       const introTitle = document.getElementById("training-intro-title");
+      const step1Title = document.getElementById("training-intro-step1-title");
+      const step1Text = document.getElementById("training-intro-step1-text");
+      const isTrainingDemoView = new URLSearchParams(window.location.search).get("training_demo") === "1";
       if (!welcomeDialog || !trainingButton || !introDialog || !goButton || !backButton) return;
+
+      if (isTrainingDemoView) {
+        step1Title?.setAttribute("data-training-ja", "地図から出発地点を選ぶ");
+        step1Title?.setAttribute("data-training-en", "Choose a starting point on the map");
+        step1Text?.setAttribute("data-training-ja", "地図をタップすると、近くの避難先と経路が表示されます。");
+        step1Text?.setAttribute("data-training-en", "Tap the map to see a nearby evacuation destination and route.");
+        goButton.setAttribute("data-training-ja", "地図から出発地点を選ぶ");
+        goButton.setAttribute("data-training-en", "Choose a starting point on the map");
+      }
 
 
 
@@ -11017,6 +11029,9 @@
       goButton.addEventListener("click", () => {
         closeDialog(introDialog);
         if (typeof window.setAppMode === "function") window.setAppMode("training");
+        if (!isTrainingDemoView && typeof window.useCurrentLocation === "function") {
+          window.useCurrentLocation();
+        }
       });
       backButton.addEventListener("click", returnToWelcome);
       introDialog.addEventListener("cancel", (event) => {
