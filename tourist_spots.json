@@ -10,8 +10,16 @@
     "area_en": "Hakodate Station / Daimon",
     "address": "函館市若松町9番19号",
     "address_en": "9-19 Wakamatsu-cho, Hakodate",
-    "location": { "lat": 41.772548, "lng": 140.725388 },
-    "source_url": "https://www.hakobura.jp/spots/694"
+    "location": {
+      "lat": 41.772548,
+      "lng": 140.725388
+    },
+    "source_url": "https://www.hakobura.jp/spots/694",
+    "image_url": "./tourism_images/hakodate_morning_market.webp",
+    "image_alt": "店舗が並ぶ函館朝市の通り",
+    "image_alt_en": "Street lined with shops at Hakodate Morning Market",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "seikan-ferry-mashumaru",
@@ -24,8 +32,17 @@
     "area_en": "Hakodate Station / Daimon",
     "address": "函館市若松町12番地先",
     "address_en": "12 Wakamatsu-cho, Hakodate",
-    "location": { "lat": 41.772996, "lng": 140.721891 },
-    "source_url": "https://www.hakobura.jp/spots/531"
+    "location": {
+      "lat": 41.772996,
+      "lng": 140.721891
+    },
+    "source_url": "https://www.hakobura.jp/spots/531",
+    "image_url": "./tourism_images/mashumaru.jpg",
+    "image_alt": "函館港に係留された青函連絡船記念館 摩周丸",
+    "image_alt_en": "Seikan Ferry Memorial Ship Mashu-maru moored at Hakodate Port",
+    "image_fit": "contain",
+    "image_source_url": "https://hakodate-kankou.com/library/2777/",
+    "image_terms_url": "https://hakodate-kankou.com/library/"
   },
   {
     "id": "kanemori-red-brick-warehouse",
@@ -38,8 +55,16 @@
     "area_en": "Bay Area",
     "address": "函館市末広町14-12",
     "address_en": "14-12 Suehiro-cho, Hakodate",
-    "location": { "lat": 41.766157, "lng": 140.71656 },
-    "source_url": "https://www.hakobura.jp/spots/899"
+    "location": {
+      "lat": 41.766157,
+      "lng": 140.71656
+    },
+    "source_url": "https://www.hakobura.jp/spots/899",
+    "image_url": "./tourism_images/kanemori_red_brick_warehouse.webp",
+    "image_alt": "函館港越しに見た金森赤レンガ倉庫",
+    "image_alt_en": "Kanemori Red Brick Warehouse viewed across Hakodate Port",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "old-public-hall-hakodate-ward",
@@ -52,8 +77,16 @@
     "area_en": "Motomachi / Mt. Hakodate",
     "address": "函館市元町11-13",
     "address_en": "11-13 Motomachi, Hakodate",
-    "location": { "lat": 41.765035, "lng": 140.708912 },
-    "source_url": "https://www.hakobura.jp/spots/512"
+    "location": {
+      "lat": 41.765035,
+      "lng": 140.708912
+    },
+    "source_url": "https://www.hakobura.jp/spots/512",
+    "image_url": "./tourism_images/old_public_hall.webp",
+    "image_alt": "青空の下に建つ旧函館区公会堂",
+    "image_alt_en": "Old Public Hall of Hakodate Ward under a blue sky",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "hakodate-orthodox-church",
@@ -66,8 +99,16 @@
     "area_en": "Motomachi / Mt. Hakodate",
     "address": "函館市元町3-13",
     "address_en": "3-13 Motomachi, Hakodate",
-    "location": { "lat": 41.762791, "lng": 140.712179 },
-    "source_url": "https://www.hakobura.jp/spots/524"
+    "location": {
+      "lat": 41.762791,
+      "lng": 140.712179
+    },
+    "source_url": "https://www.hakobura.jp/spots/524",
+    "image_url": "./tourism_images/hakodate_orthodox_church.webp",
+    "image_alt": "緑に囲まれた函館ハリストス正教会",
+    "image_alt_en": "Hakodate Orthodox Church surrounded by greenery",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "mount-hakodate-observatory",
@@ -80,8 +121,16 @@
     "area_en": "Motomachi / Mt. Hakodate",
     "address": "函館市函館山",
     "address_en": "Mt. Hakodate, Hakodate",
-    "location": { "lat": 41.759189, "lng": 140.704046 },
-    "source_url": "https://www.hakobura.jp/spots/468"
+    "location": {
+      "lat": 41.759189,
+      "lng": 140.704046
+    },
+    "source_url": "https://www.hakobura.jp/spots/468",
+    "image_url": "./tourism_images/mount_hakodate_night.webp",
+    "image_alt": "函館山から見た函館市街の夜景",
+    "image_alt_en": "Night view of Hakodate from Mt. Hakodate",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "goryokaku-park",
@@ -94,8 +143,16 @@
     "area_en": "Goryokaku",
     "address": "函館市五稜郭町44",
     "address_en": "44 Goryokaku-cho, Hakodate",
-    "location": { "lat": 41.795149, "lng": 140.756962 },
-    "source_url": "https://www.hakobura.jp/spots/355"
+    "location": {
+      "lat": 41.795149,
+      "lng": 140.756962
+    },
+    "source_url": "https://www.hakobura.jp/spots/355",
+    "image_url": "./tourism_images/goryokaku_park.webp",
+    "image_alt": "桜が咲く五稜郭公園の堀",
+    "image_alt_en": "Cherry blossoms and moat at Goryokaku Park",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "goryokaku-tower",
@@ -108,8 +165,17 @@
     "area_en": "Goryokaku",
     "address": "函館市五稜郭町43-9",
     "address_en": "43-9 Goryokaku-cho, Hakodate",
-    "location": { "lat": 41.794767, "lng": 140.754021 },
-    "source_url": "https://www.hakobura.jp/spots/470"
+    "location": {
+      "lat": 41.794767,
+      "lng": 140.754021
+    },
+    "source_url": "https://www.hakobura.jp/spots/470",
+    "image_url": "./tourism_images/goryokaku_tower.jpg",
+    "image_alt": "青空を背景にそびえる五稜郭タワー",
+    "image_alt_en": "Goryokaku Tower rising against a blue sky",
+    "image_fit": "contain",
+    "image_source_url": "https://hakodate-kankou.com/library/2775/",
+    "image_terms_url": "https://hakodate-kankou.com/library/"
   },
   {
     "id": "yunokawa-onsen-footbath",
@@ -122,8 +188,17 @@
     "area_en": "Yunokawa",
     "address": "函館市湯川町1-16-5",
     "address_en": "1-16-5 Yunokawa-cho, Hakodate",
-    "location": { "lat": 41.779558, "lng": 140.785677 },
-    "source_url": "https://www.hakobura.jp/spots/440"
+    "location": {
+      "lat": 41.779558,
+      "lng": 140.785677
+    },
+    "source_url": "https://www.hakobura.jp/spots/440",
+    "image_url": "./tourism_images/yunokawa_footbath.jpg",
+    "image_alt": "湯の川温泉の屋外足湯",
+    "image_alt_en": "Outdoor footbath in Yunokawa Onsen",
+    "image_fit": "contain",
+    "image_source_url": "https://hakodate-kankou.com/library/2961/",
+    "image_terms_url": "https://hakodate-kankou.com/library/"
   },
   {
     "id": "hakodate-tropical-botanical-garden",
@@ -136,10 +211,18 @@
     "area_en": "Yunokawa",
     "address": "函館市湯川町3-1-15",
     "address_en": "3-1-15 Yunokawa-cho, Hakodate",
-    "location": { "lat": 41.774006, "lng": 140.789501 },
-    "source_url": "https://www.hakobura.jp/spots/362"
+    "location": {
+      "lat": 41.774006,
+      "lng": 140.789501
+    },
+    "source_url": "https://www.hakobura.jp/spots/362",
+    "image_url": "./tourism_images/tropical_botanical_garden.jpg",
+    "image_alt": "温室内の熱帯植物と見学用階段",
+    "image_alt_en": "Tropical plants and viewing stairs inside the greenhouse",
+    "image_fit": "contain",
+    "image_source_url": "https://hakodate-kankou.com/library/2759/",
+    "image_terms_url": "https://hakodate-kankou.com/library/"
   },
-
   {
     "id": "hakodate-museum-northern-peoples",
     "name": "函館市北方民族資料館",
@@ -155,7 +238,13 @@
       "lat": 41.767152,
       "lng": 140.711976
     },
-    "source_url": "https://www.hakobura.jp/spots/534"
+    "source_url": "https://www.hakobura.jp/spots/534",
+    "image_url": "./tourism_images/museum_northern_peoples.jpg",
+    "image_alt": "旧日本銀行函館支店を活用した函館市北方民族資料館",
+    "image_alt_en": "Hakodate Museum of Northern Peoples in the former Bank of Japan building",
+    "image_fit": "contain",
+    "image_source_url": "https://hakodate-kankou.com/library/2783/",
+    "image_terms_url": "https://hakodate-kankou.com/library/"
   },
   {
     "id": "former-british-consulate-hakodate",
@@ -172,7 +261,13 @@
       "lat": 41.765955,
       "lng": 140.710651
     },
-    "source_url": "https://www.hakobura.jp/spots/507"
+    "source_url": "https://www.hakobura.jp/spots/507",
+    "image_url": "./tourism_images/old_british_consulate.jpg",
+    "image_alt": "英国旗が掲げられた函館市旧イギリス領事館",
+    "image_alt_en": "Former British Consulate of Hakodate with the Union Jack",
+    "image_fit": "contain",
+    "image_source_url": "https://hakodate-kankou.com/library/2787/",
+    "image_terms_url": "https://hakodate-kankou.com/library/"
   },
   {
     "id": "motomachi-roman-catholic-church",
@@ -189,7 +284,12 @@
       "lat": 41.763353,
       "lng": 140.712769
     },
-    "source_url": "https://www.hakobura.jp/spots/513"
+    "source_url": "https://www.hakobura.jp/spots/513",
+    "image_url": "./tourism_images/motomachi_roman_catholic_church.webp",
+    "image_alt": "青空の下に建つカトリック元町教会",
+    "image_alt_en": "Motomachi Roman Catholic Church under a blue sky",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "trappistine-convent",
@@ -206,7 +306,12 @@
       "lat": 41.787859,
       "lng": 140.822458
     },
-    "source_url": "https://www.hakobura.jp/spots/504"
+    "source_url": "https://www.hakobura.jp/spots/504",
+    "image_url": "./tourism_images/trappistine_convent.webp",
+    "image_alt": "青空の下に建つトラピスチヌ修道院",
+    "image_alt_en": "Trappistine Convent under a blue sky",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "motomachi-park",
@@ -223,7 +328,13 @@
       "lat": 41.76542,
       "lng": 140.70979
     },
-    "source_url": "https://www.hakobura.jp/spots/365"
+    "source_url": "https://www.hakobura.jp/spots/365",
+    "image_url": "./tourism_images/motomachi_park.jpg",
+    "image_alt": "元町公園から望む歴史的建造物",
+    "image_alt_en": "Historic buildings viewed from Motomachi Park",
+    "image_fit": "contain",
+    "image_source_url": "https://hakodate-kankou.com/library/2664/",
+    "image_terms_url": "https://hakodate-kankou.com/library/"
   },
   {
     "id": "hakodate-meijikan",
@@ -240,7 +351,12 @@
       "lat": 41.766591,
       "lng": 140.71877
     },
-    "source_url": "https://www.hakobura.jp/spots/763"
+    "source_url": "https://www.hakobura.jp/spots/763",
+    "image_url": "./tourism_images/hakodate_meijikan.webp",
+    "image_alt": "蔦に覆われた赤レンガ造りのはこだて明治館",
+    "image_alt_en": "Ivy-covered red-brick Hakodate Meijikan",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "hakodate-magistrates-office",
@@ -257,7 +373,12 @@
       "lat": 41.796812,
       "lng": 140.757048
     },
-    "source_url": "https://www.hakobura.jp/spots/502"
+    "source_url": "https://www.hakobura.jp/spots/502",
+    "image_url": "./tourism_images/hakodate_magistrates_office.webp",
+    "image_alt": "松の木に囲まれた箱館奉行所",
+    "image_alt_en": "Hakodate Magistrate's Office surrounded by pine trees",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "hachiman-zaka-slope",
@@ -274,7 +395,12 @@
       "lat": 41.765559,
       "lng": 140.713654
     },
-    "source_url": "https://www.hakobura.jp/spots/478"
+    "source_url": "https://www.hakobura.jp/spots/478",
+    "image_url": "./tourism_images/hachiman_zaka.webp",
+    "image_alt": "函館港へまっすぐ下る新緑の八幡坂",
+    "image_alt_en": "Green Hachimanzaka Slope descending toward Hakodate Port",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   },
   {
     "id": "hakodate-park-childrens-land",
@@ -291,7 +417,13 @@
       "lat": 41.756318,
       "lng": 140.716574
     },
-    "source_url": "https://www.hakobura.jp/spots/351"
+    "source_url": "https://www.hakobura.jp/spots/351",
+    "image_url": "./tourism_images/hakodate_park.jpg",
+    "image_alt": "芝生広場と噴水がある函館公園",
+    "image_alt_en": "Lawn and fountain at Hakodate Park",
+    "image_fit": "contain",
+    "image_source_url": "https://hakodate-kankou.com/library/2825/",
+    "image_terms_url": "https://hakodate-kankou.com/library/"
   },
   {
     "id": "hakodate-hachimangu-shrine",
@@ -308,7 +440,11 @@
       "lat": 41.753886,
       "lng": 140.710323
     },
-    "source_url": "https://www.hakobura.jp/spots/496"
+    "source_url": "https://www.hakobura.jp/spots/496",
+    "image_url": "./tourism_images/hakodate_hachimangu_shrine.webp",
+    "image_alt": "山の緑を背景に建つ函館八幡宮",
+    "image_alt_en": "Hakodate Hachimangu Shrine against green mountains",
+    "image_source_url": "https://www.hakobura.jp/photo-library",
+    "image_terms_url": "https://www.hakobura.jp/photo-library-term"
   }
-
 ]

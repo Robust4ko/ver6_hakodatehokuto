@@ -40,3 +40,31 @@ async function saveGpsTrainingLog(training) {
   });
   if (error) throw new Error("gps_training_save_rejected");
 }
+
+// 避難訓練後の短い選択式アンケートを、GPS記録と同じ訓練番号で保存する。
+async function saveGpsTrainingFeedback(feedback) {
+  const idPattern = /^training-\d{14}-[a-z0-9]{6}$/;
+  const scoreKeys = [
+    "destinationClarity",
+    "routeClarity",
+    "unfamiliarAreaConfidence",
+    "anxietyReduction",
+    "disasterUseIntention",
+  ];
+  if (!feedback || !idPattern.test(feedback.trainingId) ||
+      scoreKeys.some((key) => !Number.isInteger(feedback[key]) || feedback[key] < 1 || feedback[key] > 5)) {
+    throw new Error("invalid_gps_training_feedback");
+  }
+
+  await ensureCommunitySession();
+  const client = getCommunitySupabaseClient();
+  const { error } = await client.rpc("save_gps_training_feedback_v2", {
+    p_training_id: feedback.trainingId,
+    p_destination_clarity: feedback.destinationClarity,
+    p_route_clarity: feedback.routeClarity,
+    p_unfamiliar_area_confidence: feedback.unfamiliarAreaConfidence,
+    p_anxiety_reduction: feedback.anxietyReduction,
+    p_disaster_use_intention: feedback.disasterUseIntention,
+  });
+  if (error) throw new Error("gps_training_feedback_save_rejected");
+}

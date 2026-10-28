@@ -1,4 +1,4 @@
-﻿// ver4.1：JA/ENトグル + 二段フッター対応 + ボタン見た目分離 + name_en 将来対応（未定義は name をコピー）
+// ver4.1：JA/ENトグル + 二段フッター対応 + ボタン見た目分離 + name_en 将来対応（未定義は name をコピー）
 // SVGアイコン / 欠け対策 / 当たり判定最適化 / 700m→500mフォールバック
 // ポップアップは足元一致＋★アイコン高さに応じて自動オフセット（lift）
 
@@ -24,6 +24,10 @@ let directionsRenderer;
 let distanceMatrixService;
 let startMarker = null;
 let destinations = [];   // { name, name_en?, location:{lat,lng} }
+let destinationsReady = false;
+let pendingEvacuationStart = null;
+let evacuationSearchRequestId = 0;
+let currentLocationRequestId = 0;
 let latestDestination = null;
 
 
@@ -46,6 +50,7 @@ const IS_BUILDING_ADMIN_VIEW =
   new URLSearchParams(window.location.search).get("admin") === "1";
 const IS_TRAINING_DEMO_VIEW =
   new URLSearchParams(window.location.search).get("training_demo") === "1";
+const TRAINING_DEMO_START_LOCATION = { lat: 41.7739, lng: 140.7266 };
 let isSelectingBuildingLocation = false;
 let buildingLocation = null;
 let buildingLocationMarker = null;
@@ -101,9 +106,23 @@ let gpsTrainingWakeLock = null;
 let gpsTrainingRoutePath = [];
 let gpsTrainingRouteRemainingMeters = [];
 let gpsTrainingRouteDestination = null;
+const GPS_TRAINING_REROUTE_DISTANCE_METERS = 30;
+const GPS_TRAINING_REROUTE_REQUIRED_SAMPLES = 2;
+const GPS_TRAINING_REROUTE_COOLDOWN_MS = 15000;
+let gpsTrainingRerouteSampleCount = 0;
+let gpsTrainingLastRerouteAt = 0;
+let gpsTrainingRerouteInProgress = false;
+const GPS_TRAINING_ARRIVAL_DISTANCE_METERS = 20;
+const GPS_TRAINING_ARRIVAL_MAX_ACCURACY_METERS = 25;
+const GPS_TRAINING_ARRIVAL_REQUIRED_SAMPLES = 3;
+const GPS_TRAINING_ARRIVAL_SNOOZE_MS = 30000;
+let gpsTrainingArrivalSampleCount = 0;
+let gpsTrainingArrivalSnoozeUntil = 0;
 let gpsTrainingDemoTimerId = null;
 let gpsTrainingDemoCursor = 0;
 let gpsTrainingIsDemo = false;
+let gpsTrainingFeedbackAnswers = {};
+let gpsTrainingFeedbackStep = 0;
 
 
 
@@ -148,6 +167,7 @@ const I18N = {
     rerun_fallback: "候補が多すぎるため、{radius}m で再検索します…",
     too_many_limit: "候補が非常に多いため、近い {limit} 件で評価します…",
     none_in_radius: "{radius}m以内に避難場所がありません。",
+    destinations_loading: "避難先データを読み込んでいます。経路を自動表示するまでお待ちください。",
     route_error: "経路描画エラー: {status}",
     error_status: "エラー: {status}",
     nearest_fmt: "{name}（{meters} m、約 {duration}）",
@@ -169,7 +189,7 @@ const I18N = {
     welcome_help: "使い方を表示",
     welcome_eyebrow: "TSUNAMI EVACUATION SUPPORT",
     welcome_title: "『逃げるーと』を使ってみよう！",
-    welcome_intro: "避難・地域情報・観光・避難訓練を、ひとつの地図で利用できます。",
+    welcome_intro: "突然の津波でも、今いる場所から逃げる道がすぐわかる。",
     welcome_modes_label: "4つのモード",
     welcome_evacuation_title: "避難する",
     welcome_evacuation_text: "出発地点を選ぶと、近くの避難先と徒歩経路を表示します。",
@@ -338,7 +358,7 @@ const I18N = {
     gps_training_step_label_save: "3 / 3",
     gps_training_step_label_saved: "完了",
     gps_training_step_label_demo_complete: "デモ完了",
-    gps_training_step_route: "地図をタップし、避難経路を表示してください。",
+    gps_training_step_route: "「現在地から避難」を押すか、地図をタップして出発地点を選んでください。",
     gps_training_step_start: "「避難訓練を開始」を押してください。",
     gps_training_step_move: "避難先へ移動し、到着したら\n「訓練終了」を押してください。",
     gps_training_step_save: "「保存する」を押すと訓練完了です。",
@@ -375,12 +395,33 @@ const I18N = {
     gps_training_result_title: "訓練結果",
     gps_training_saved_title: "保存完了",
     gps_training_select_route: "先に地図上で出発地点を選び、避難経路を表示してください。",
-    gps_training_demo_start: "画面確認用デモ",
+    gps_training_demo_start: "この地点からデモ訓練を開始",
+    gps_training_demo_location: "デモ上の現在地：函館駅周辺（浸水想定区域内）",
     gps_training_demo_recording: "デモ走行中です。GPSとデータベース保存は使用していません。",
     gps_training_demo_finished: "画面確認用デモが終了しました。データは保存されません。",
     gps_training_starting: "現在位置を確認しています。画面を開いたままお待ちください。",
     gps_training_recording: "GPSを記録中です（現在の精度：約±{accuracy}m）。",
-    gps_training_finished: "記録を終了しました。「保存する」を押してください。",
+    gps_training_finished: "記録を終了しました。かんたんなアンケートにご協力ください。",
+    gps_training_arrival_title: "避難先に到着しましたか？",
+    gps_training_arrival_lead: "周囲を確認し、避難先の建物または場所まで到着していれば訓練を終了してください。",
+    gps_training_arrival_destination: "避難先",
+    gps_training_arrival_confirm: "到着したので訓練を終了",
+    gps_training_arrival_continue: "まだ到着していない",
+    training_feedback_title: "アンケートのご協力をお願いします！",
+    training_feedback_lead: "あてはまる数字を選んでください。",
+    training_feedback_q_destination: "避難先をすぐに把握できた",
+    training_feedback_q_route: "進む方向や経路を理解できた",
+    training_feedback_q_unfamiliar: "土地勘がなくても避難できると感じた",
+    training_feedback_q_anxiety: "アプリによって避難への不安が軽減した",
+    training_feedback_q_use: "実際の災害時にもこのアプリを使いたい",
+    training_feedback_scale_low: "1　そう思わない",
+    training_feedback_scale_high: "5　そう思う",
+    training_feedback_complete: "回答は以上です",
+    training_feedback_complete_hint: "GPS記録と回答を一緒に保存します。",
+    training_feedback_demo_hint: "画面確認用デモのため、回答は保存されません。",
+    training_feedback_demo_close: "確認を終える",
+    training_feedback_save: "記録と回答を保存する",
+    training_feedback_skip: "回答せず記録だけ保存",
 
 
 
@@ -405,7 +446,7 @@ const I18N = {
     gps_training_unavailable: "現在位置を取得できませんでした。屋外で再度お試しください。",
     gps_training_timeout: "現在位置の取得に時間がかかっています。画面を開いたままお待ちください。",
     gps_training_error: "GPS記録中にエラーが発生しました。",
-    gps_training_privacy: "位置情報は「保存する」を押したときだけ送信されます。"
+    gps_training_privacy: "位置情報と回答は、保存ボタンを押したときだけ送信されます。"
   },
   en: {
     go_here: "Go here",
@@ -413,6 +454,7 @@ const I18N = {
     rerun_fallback: "Too many candidates. Retrying with {radius} m…",
     too_many_limit: "Too many candidates. Evaluating the nearest {limit} only…",
     none_in_radius: "No shelters within {radius} m.",
+    destinations_loading: "Loading evacuation destinations. The route will appear automatically.",
     route_error: "Route drawing error: {status}",
     error_status: "Error: {status}",
     nearest_fmt: "{name} ({meters} m, about {duration})",
@@ -434,7 +476,7 @@ const I18N = {
     welcome_help: "Show instructions",
     welcome_eyebrow: "TSUNAMI EVACUATION SUPPORT",
     welcome_title: "Try NigeRoute!",
-    welcome_intro: "Use evacuation, local reports, sightseeing and training on one map.",
+    welcome_intro: "When a tsunami strikes, quickly find an evacuation route from where you are.",
     welcome_modes_label: "FOUR MODES",
     welcome_evacuation_title: "Evacuate",
     welcome_evacuation_text: "Choose a starting point to see a nearby evacuation destination and walking route.",
@@ -603,7 +645,7 @@ const I18N = {
     gps_training_step_label_save: "3 / 3",
     gps_training_step_label_saved: "COMPLETE",
     gps_training_step_label_demo_complete: "DEMO COMPLETE",
-    gps_training_step_route: "Tap the map to display an evacuation route.",
+    gps_training_step_route: "Tap “Evacuate from current location” or tap the map to choose a starting point.",
     gps_training_step_start: "Tap Start evacuation training.",
     gps_training_step_move: "Move to the destination.\nWhen you arrive, tap End training.",
     gps_training_step_save: "Tap Save to complete the training.",
@@ -640,12 +682,33 @@ const I18N = {
     gps_training_result_title: "Training results",
     gps_training_saved_title: "Saved",
     gps_training_select_route: "Choose a start point and display an evacuation route first.",
-    gps_training_demo_start: "Preview training screen",
+    gps_training_demo_start: "Start demo training from this point",
+    gps_training_demo_location: "Demo location: Hakodate Station area (tsunami inundation zone).",
     gps_training_demo_recording: "Demo in progress. GPS and database saving are not being used.",
     gps_training_demo_finished: "The preview demo has finished. No data was saved.",
     gps_training_starting: "Finding your current location. Keep this screen open.",
     gps_training_recording: "Recording GPS (current accuracy: about ±{accuracy} m).",
-    gps_training_finished: "Recording finished. Tap Save to complete.",
+    gps_training_finished: "Recording finished. Please answer a short survey.",
+    gps_training_arrival_title: "Have you arrived at the evacuation destination?",
+    gps_training_arrival_lead: "Check your surroundings. End the training only after reaching the building or designated area.",
+    gps_training_arrival_destination: "Destination",
+    gps_training_arrival_confirm: "I have arrived — end training",
+    gps_training_arrival_continue: "Not there yet",
+    training_feedback_title: "Quick survey",
+    training_feedback_lead: "Select the number that best matches your experience.",
+    training_feedback_q_destination: "I could quickly identify the evacuation destination.",
+    training_feedback_q_route: "I could understand the direction and route to follow.",
+    training_feedback_q_unfamiliar: "I felt able to evacuate even without local knowledge.",
+    training_feedback_q_anxiety: "The app reduced my anxiety about evacuation.",
+    training_feedback_q_use: "I would use this app during a real disaster.",
+    training_feedback_scale_low: "1  Strongly disagree",
+    training_feedback_scale_high: "5  Strongly agree",
+    training_feedback_complete: "All questions answered",
+    training_feedback_complete_hint: "Your GPS log and answers will be saved together.",
+    training_feedback_demo_hint: "This is a preview demo. Your answers will not be saved.",
+    training_feedback_demo_close: "Finish preview",
+    training_feedback_save: "Save log and answers",
+    training_feedback_skip: "Save only the log",
 
 
 
@@ -670,7 +733,7 @@ const I18N = {
     gps_training_unavailable: "Your current location is unavailable. Try again outdoors.",
     gps_training_timeout: "Location is taking longer to acquire. Keep this screen open.",
     gps_training_error: "An error occurred while recording GPS.",
-    gps_training_privacy: "Location data is sent only when you select Save."
+    gps_training_privacy: "Location data and survey answers are sent only when you select a save option."
   }
 };
 
@@ -694,6 +757,8 @@ function setLanguage(lang) {
   LANG = (lang === "en") ? "en" : "ja";
   localStorage.setItem("lang", LANG);
   applyI18nToUI();
+  if (document.getElementById("training-feedback-dialog")?.open) renderGpsTrainingFeedback();
+  if (document.getElementById("gps-training-arrival-dialog")?.open) renderGpsTrainingArrivalDialog();
 }
 window.setLanguage = setLanguage;
 
@@ -804,9 +869,13 @@ function setupWelcomeDialog() {
   const dialog = document.getElementById("welcome-dialog");
   const helpButton = document.getElementById("help-button");
   const startButton = document.getElementById("welcome-start");
+  const evacuationCardButton = document.getElementById("welcome-evacuation-start");
+  const reportCardButton = document.getElementById("welcome-report-start");
+  const tourismCardButton = document.getElementById("welcome-tourism-start");
   const trainingButton = document.getElementById("welcome-training-start");
   const title = document.getElementById("welcome-title");
-  if (!dialog || !helpButton || !startButton || !trainingButton) return;
+  if (!dialog || !helpButton || !startButton || !evacuationCardButton ||
+      !reportCardButton || !tourismCardButton || !trainingButton) return;
 
 
 
@@ -851,6 +920,18 @@ function setupWelcomeDialog() {
 
   helpButton.addEventListener("click", openDialog);
   startButton.addEventListener("click", closeDialog);
+  evacuationCardButton.addEventListener("click", () => {
+    setAppMode("evacuation");
+    closeDialog();
+  });
+  reportCardButton.addEventListener("click", () => {
+    setAppMode("report");
+    closeDialog();
+  });
+  tourismCardButton.addEventListener("click", () => {
+    setAppMode("tourism");
+    closeDialog();
+  });
   trainingButton.addEventListener("click", () => {
     setAppMode("training");
     closeDialog();
@@ -1039,6 +1120,9 @@ function initMap() {
     center: center,
     clickableIcons: false,
     mapTypeControl: false,
+    renderingType: google.maps.RenderingType?.VECTOR,
+    headingInteractionEnabled: false,
+    tiltInteractionEnabled: false,
   });
 
 
@@ -1422,7 +1506,7 @@ function getTouristSpotIconUrl(spot) {
 
 async function loadTouristSpots() {
   try {
-    const response = await fetch("./tourist_spots.json?v=20260927-1");
+    const response = await fetch("./tourist_spots.json?v=20261028-4");
     if (!response.ok) throw new Error("HTTP " + response.status);
     const data = await response.json();
     touristSpots = data.filter((spot) =>
@@ -1656,6 +1740,16 @@ function openTouristSpotPopup(spot, marker) {
   const destination = spot.location;
   const googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" +
     encodeURIComponent(destination.lat + "," + destination.lng) + "&travelmode=walking";
+  const imageUrl = /^\.\/tourism_images\/[a-z0-9_-]+\.(?:webp|jpg)$/.test(spot.image_url || "")
+    ? spot.image_url
+    : "";
+  const imageAlt = getTouristSpotText(spot, "image_alt") || name;
+  const preserveFullImage = spot.image_fit === "contain";
+  const photoHtml = imageUrl
+    ? (preserveFullImage
+      ? '<div style="display:flex;justify-content:center;align-items:center;background:#f3f4f6;border-radius:10px;margin:0 0 10px;overflow:hidden"><img src="' + escapeHtml(imageUrl) + '" alt="' + escapeHtml(imageAlt) + '" style="display:block;max-width:100%;max-height:260px;width:auto;height:auto" loading="lazy" decoding="async"></div>'
+      : '<img src="' + escapeHtml(imageUrl) + '" alt="' + escapeHtml(imageAlt) + '" style="display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;margin:0 0 10px" loading="lazy" decoding="async">')
+    : "";
   const headerContent = document.createElement("strong");
   headerContent.textContent = name;
   headerContent.style.fontSize = "1rem";
@@ -1680,6 +1774,7 @@ function openTouristSpotPopup(spot, marker) {
   content.style.maxWidth = "260px";
   content.style.lineHeight = "1.5";
   content.innerHTML = [
+    photoHtml,
     '<div>' + escapeHtml(t("tourism_popup_area")) + ': ' + escapeHtml(area) + '</div>',
     '<div>' + escapeHtml(t("tourism_popup_category")) + ': ' + escapeHtml(category) + '</div>',
     '<div>' + escapeHtml(address) + '</div>',
@@ -2162,14 +2257,31 @@ function openDestinationPopup(dest, marker) {
 
 
 /* ========== 出発地点 & 探索 ========== */
-function setStartPoint(location) {
+function setStartPoint(location, options = {}) {
+  if (!options.fromCurrentLocation) currentLocationRequestId += 1;
   if (startMarker) startMarker.setMap(null);
   startMarker = new google.maps.Marker({
     position: location,
     map: map,
     title: "Start",
   });
-  findClosestPoint(location);
+
+  const requestId = ++evacuationSearchRequestId;
+  if (!destinationsReady) {
+    pendingEvacuationStart = { location, requestId };
+    displayMessage(t("destinations_loading"));
+    return;
+  }
+
+  pendingEvacuationStart = null;
+  findClosestPoint(location, requestId);
+}
+
+
+
+
+function findClosestPoint(originLatLng, requestId = evacuationSearchRequestId) {
+  attemptWithRadius(originLatLng, PRIMARY_RADIUS_M, /*isFallback*/ false, requestId);
 }
 
 
@@ -2187,26 +2299,8 @@ function setStartPoint(location) {
 
 
 
-function findClosestPoint(originLatLng) {
-  attemptWithRadius(originLatLng, PRIMARY_RADIUS_M, /*isFallback*/ false);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function attemptWithRadius(originLatLng, radiusMeters, isFallback) {
+function attemptWithRadius(originLatLng, radiusMeters, isFallback, requestId) {
+  if (requestId !== evacuationSearchRequestId) return;
   const origin = originLatLng;
   const nearby = collectCandidates(origin, radiusMeters, /*sort*/ true);
 
@@ -2252,7 +2346,7 @@ function attemptWithRadius(originLatLng, radiusMeters, isFallback) {
   if (nearby.length > DESTINATION_LIMIT) {
     if (!isFallback) {
       displayMessage(t("rerun_fallback", { radius: FALLBACK_RADIUS_M }));
-      attemptWithRadius(origin, FALLBACK_RADIUS_M, /*isFallback*/ true);
+      attemptWithRadius(origin, FALLBACK_RADIUS_M, /*isFallback*/ true, requestId);
       return;
     } else {
       displayMessage(t("too_many_limit", { limit: DESTINATION_LIMIT }));
@@ -2317,6 +2411,7 @@ function attemptWithRadius(originLatLng, radiusMeters, isFallback) {
       travelMode: google.maps.TravelMode.WALKING,
     },
     (response, status) => {
+      if (requestId !== evacuationSearchRequestId) return;
       if (!isEvacuationRouteMode()) return;
       const statusStr = String(status);
       const isMaxErr =
@@ -2342,7 +2437,7 @@ function attemptWithRadius(originLatLng, radiusMeters, isFallback) {
 
       if (isMaxErr && !isFallback) {
         displayMessage(t("rerun_fallback", { radius: FALLBACK_RADIUS_M }));
-        attemptWithRadius(origin, FALLBACK_RADIUS_M, /*isFallback*/ true);
+        attemptWithRadius(origin, FALLBACK_RADIUS_M, /*isFallback*/ true, requestId);
         return;
       }
 
@@ -2423,7 +2518,7 @@ function attemptWithRadius(originLatLng, radiusMeters, isFallback) {
 
 
         showNearestMessage(latestDestination, lastDistanceMeters, lastDurationText);
-        drawRoute(origin, latestDestination.location);
+        drawRoute(origin, latestDestination.location, requestId);
       } else {
         displayMessage(t("error_status", { status: statusStr }));
       }
@@ -2544,6 +2639,71 @@ function calculateGpsTrainingRouteRemaining(point) {
   }
   return nearestDistance <= 100 ? remainingDistance : null;
 }
+function calculateGpsTrainingDistanceToRoute(point) {
+  if (gpsTrainingRoutePath.length < 2) return null;
+  const latitudeScale = 111320;
+  const longitudeScale = Math.max(1, 111320 * Math.cos(point.lat * Math.PI / 180));
+  let nearestDistance = Infinity;
+  for (let index = 0; index < gpsTrainingRoutePath.length - 1; index += 1) {
+    const start = gpsTrainingRoutePath[index];
+    const end = gpsTrainingRoutePath[index + 1];
+    const startX = (start.lng - point.lng) * longitudeScale;
+    const startY = (start.lat - point.lat) * latitudeScale;
+    const endX = (end.lng - point.lng) * longitudeScale;
+    const endY = (end.lat - point.lat) * latitudeScale;
+    const segmentX = endX - startX;
+    const segmentY = endY - startY;
+    const segmentLengthSquared = segmentX ** 2 + segmentY ** 2;
+    const ratio = segmentLengthSquared > 0
+      ? Math.max(0, Math.min(1, -(startX * segmentX + startY * segmentY) / segmentLengthSquared))
+      : 0;
+    const projected = {
+      lat: start.lat + (end.lat - start.lat) * ratio,
+      lng: start.lng + (end.lng - start.lng) * ratio,
+    };
+    nearestDistance = Math.min(nearestDistance, getDistanceInMeters(point, projected));
+  }
+  return Number.isFinite(nearestDistance) ? nearestDistance : null;
+}
+
+function maybeRerouteGpsTraining(point) {
+  if (!isGpsTrainingActive() || gpsTrainingIsDemo || gpsTrainingRerouteInProgress ||
+      !latestDestination || gpsTrainingRoutePath.length < 2) return;
+  if (Number.isFinite(point.accuracy) && point.accuracy > 50) return;
+
+  const currentLocation = { lat: point.latitude, lng: point.longitude };
+  const distanceToRoute = calculateGpsTrainingDistanceToRoute(currentLocation);
+  if (!Number.isFinite(distanceToRoute)) return;
+  if (distanceToRoute <= GPS_TRAINING_REROUTE_DISTANCE_METERS) {
+    gpsTrainingRerouteSampleCount = 0;
+    return;
+  }
+
+  gpsTrainingRerouteSampleCount += 1;
+  const now = Date.now();
+  if (gpsTrainingRerouteSampleCount < GPS_TRAINING_REROUTE_REQUIRED_SAMPLES ||
+      now - gpsTrainingLastRerouteAt < GPS_TRAINING_REROUTE_COOLDOWN_MS) return;
+
+  gpsTrainingRerouteSampleCount = 0;
+  gpsTrainingLastRerouteAt = now;
+  gpsTrainingRerouteInProgress = true;
+  directionsService.route(
+    {
+      origin: currentLocation,
+      destination: latestDestination.location,
+      travelMode: google.maps.TravelMode.WALKING,
+    },
+    (result, status) => {
+      gpsTrainingRerouteInProgress = false;
+      if (!isGpsTrainingActive() || status !== google.maps.DirectionsStatus.OK) return;
+      directionsRenderer.setDirections(result);
+      setGpsTrainingRouteDistance(result.routes?.[0], latestDestination.location);
+      const leg = result.routes?.[0]?.legs?.[0];
+      if (leg?.distance?.value != null) lastDistanceMeters = leg.distance.value;
+      if (leg?.duration?.text) lastDurationText = leg.duration.text;
+    }
+  );
+}
 
 
 
@@ -2559,9 +2719,59 @@ function calculateGpsTrainingRouteRemaining(point) {
 
 
 
+
+function renderGpsTrainingArrivalDialog() {
+  const destinationName = document.getElementById("gps-training-arrival-destination-name");
+  if (destinationName) {
+    destinationName.textContent = latestDestination ? getDisplayNameFor(latestDestination) : "―";
+  }
+}
+
+function openGpsTrainingArrivalDialog() {
+  const dialog = document.getElementById("gps-training-arrival-dialog");
+  if (!dialog || dialog.open) return;
+  const continueButton = document.getElementById("gps-training-arrival-continue");
+  if (continueButton) continueButton.hidden = gpsTrainingIsDemo;
+  renderGpsTrainingArrivalDialog();
+  dialog.showModal();
+}
+
+function dismissGpsTrainingArrivalDialog() {
+  const dialog = document.getElementById("gps-training-arrival-dialog");
+  if (dialog?.open) dialog.close();
+  gpsTrainingArrivalSampleCount = 0;
+  gpsTrainingArrivalSnoozeUntil = Date.now() + GPS_TRAINING_ARRIVAL_SNOOZE_MS;
+}
+
+function maybeShowGpsTrainingArrival(point) {
+  if (!isGpsTrainingActive() || gpsTrainingIsDemo || !latestDestination ||
+      Date.now() < gpsTrainingArrivalSnoozeUntil) return;
+
+  const dialog = document.getElementById("gps-training-arrival-dialog");
+  if (dialog?.open) return;
+  if (Number.isFinite(point.accuracy) &&
+      point.accuracy > GPS_TRAINING_ARRIVAL_MAX_ACCURACY_METERS) {
+    gpsTrainingArrivalSampleCount = 0;
+    return;
+  }
+
+  const distanceToDestination = getDistanceInMeters(
+    { lat: point.latitude, lng: point.longitude },
+    latestDestination.location
+  );
+  if (distanceToDestination > GPS_TRAINING_ARRIVAL_DISTANCE_METERS) {
+    gpsTrainingArrivalSampleCount = 0;
+    return;
+  }
+
+  gpsTrainingArrivalSampleCount += 1;
+  if (gpsTrainingArrivalSampleCount < GPS_TRAINING_ARRIVAL_REQUIRED_SAMPLES) return;
+  gpsTrainingArrivalSampleCount = 0;
+  openGpsTrainingArrivalDialog();
+}
 
 /* ========== 経路描画 ========== */
-function drawRoute(origin, destination) {
+function drawRoute(origin, destination, requestId = null) {
   clearGpsTrainingRouteDistance();
   directionsService.route(
     {
@@ -2570,6 +2780,7 @@ function drawRoute(origin, destination) {
       travelMode: google.maps.TravelMode.WALKING,
     },
     (result, status) => {
+      if (requestId !== null && requestId !== evacuationSearchRequestId) return;
       if (!isEvacuationRouteMode()) return;
       if (status === google.maps.DirectionsStatus.OK) {
         directionsRenderer.setDirections(result);
@@ -2650,16 +2861,19 @@ function launchGoogleMap() {
 
 
 function useCurrentLocation() {
+  const requestId = ++currentLocationRequestId;
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (requestId !== currentLocationRequestId || !isEvacuationRouteMode()) return;
         const latLng = new google.maps.LatLng(
           position.coords.latitude,
           position.coords.longitude
         );
-        setStartPoint(latLng);
+        setStartPoint(latLng, { fromCurrentLocation: true });
       },
       (error) => {
+        if (requestId !== currentLocationRequestId || !isEvacuationRouteMode()) return;
         displayMessage("Geolocation error: " + error.message);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -2898,6 +3112,7 @@ function updateGpsTrainingUI() {
   stepMessageElement.textContent = t(stepKey);
   stepElement.dataset.state = stepState;
   startButton.disabled = isRecording || !hasRoute;
+  startButton.hidden = IS_TRAINING_DEMO_VIEW;
   stopButton.disabled = !isRecording;
   demoButton.hidden = !IS_TRAINING_DEMO_VIEW;
   demoButton.disabled = isRecording || !hasRoute;
@@ -2919,6 +3134,12 @@ function updateGpsTrainingUI() {
 
   uploadButton.disabled = gpsTrainingPoints.length === 0 || isRecording || gpsTrainingIsDemo ||
     gpsTrainingDatabaseState === "saving" || gpsTrainingDatabaseState === "saved";
+  const canStartTraining = isTrainingMode && hasRoute && !isRecording && !isFinished && !isDemoFinished &&
+    gpsTrainingDatabaseState !== "saved";
+  startButton.classList.toggle("is-next-action", canStartTraining && !IS_TRAINING_DEMO_VIEW);
+  demoButton.classList.toggle("is-next-action", canStartTraining && IS_TRAINING_DEMO_VIEW);
+  stopButton.classList.toggle("is-next-action", isTrainingMode && isRecording);
+  uploadButton.classList.toggle("is-next-action", isFinished && !uploadButton.disabled);
 }
 
 
@@ -2968,6 +3189,7 @@ function clearGpsTrainingMap() {
   gpsTrainingHeadingSamples = [];
   gpsTrainingDeviceHeading = null;
   gpsTrainingLastMovementHeadingAt = 0;
+  resetGpsTrainingMapHeading();
 }
 
 
@@ -3139,46 +3361,73 @@ function smoothGpsTrainingHeading(nextHeading) {
 
 
 
-function createGpsTrainingNavigationIcon(heading) {
-  if (!Number.isFinite(heading)) {
-    // 停止中や方向未取得時は、誤った方角を示さない現在地点表示にする。
-    return {
-      path: google.maps.SymbolPath.CIRCLE,
-      scale: 10,
-      fillColor: "#1976d2",
-      fillOpacity: 1,
-      strokeColor: "#ffffff",
-      strokeOpacity: 1,
-      strokeWeight: 4,
-    };
-  }
-  return {
-    // 歩き始めたら、Google Mapsのナビ矢印に近い形で進行方向を示す。
-    path: "M 0 -15 L 10 11 L 0 7 L -10 11 Z",
-    anchor: new google.maps.Point(0, 0),
-    rotation: heading,
-    scale: 1,
-    fillColor: "#1976d2",
-    fillOpacity: 1,
-    strokeColor: "#ffffff",
-    strokeOpacity: 1,
-    strokeWeight: 3,
-  };
+function getGpsTrainingMapHeading() {
+  const heading = Number(map?.getHeading?.());
+  return Number.isFinite(heading) ? (heading + 360) % 360 : 0;
 }
 
 
+function rotateGpsTrainingMapToHeading(heading) {
+  if (!map || !Number.isFinite(heading) || typeof map.setHeading !== "function") {
+    return getGpsTrainingMapHeading();
+  }
+
+  const renderingType = typeof map.getRenderingType === "function"
+    ? map.getRenderingType()
+    : null;
+  const vectorType = google.maps.RenderingType?.VECTOR;
+  if (renderingType && vectorType && renderingType !== vectorType) {
+    return getGpsTrainingMapHeading();
+  }
+
+  const currentHeading = getGpsTrainingMapHeading();
+  const difference = ((heading - currentHeading + 540) % 360) - 180;
+  // 小さな方位変化は無視し、大きな変化も一度に回しすぎないよう滑らかに追従させる。
+  if (Math.abs(difference) >= 6) {
+    const nextHeading = (currentHeading + difference * 0.65 + 360) % 360;
+    if (typeof map.setTilt === "function") map.setTilt(0);
+    map.setHeading(nextHeading);
+  }
+  return getGpsTrainingMapHeading();
+}
 
 
+function resetGpsTrainingMapHeading() {
+  if (!map) return;
+  if (typeof map.setTilt === "function") map.setTilt(0);
+  if (typeof map.setHeading === "function") map.setHeading(0);
+}
 
 
+function getGpsTrainingMarkerScreenHeading(heading, mapHeading) {
+  if (!Number.isFinite(heading)) return null;
+  return (heading - mapHeading + 360) % 360;
+}
 
 
+function createGpsTrainingNavigationIcon(heading) {
+  const hasHeading = Number.isFinite(heading);
+  const rotation = hasHeading ? (heading + 360) % 360 : 0;
+  const markerContent = hasHeading
+    ? '<g transform="rotate(' + rotation + ' 32 32)">' +
+      '<path d="M32 10 L44 46 L32 40 L20 46 Z" fill="#ffffff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>' +
+      '</g>'
+    : '<circle cx="32" cy="32" r="8" fill="#ffffff"/>';
 
+  // Google Mapsのナビ表示に近い、円形の現在地マーカー内へ進行方向を示す。
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">' +
+    '<circle cx="32" cy="32" r="29" fill="#ffffff" fill-opacity="0.98" stroke="#d4e1eb" stroke-width="2"/>' +
+    '<circle cx="32" cy="32" r="24" fill="#1976d2"/>' +
+    markerContent +
+    '</svg>';
 
-
-
-
-
+  return {
+    url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    scaledSize: new google.maps.Size(58, 58),
+    anchor: new google.maps.Point(29, 29),
+  };
+}
 
 
 function getGpsTrainingScreenAngle() {
@@ -3224,7 +3473,9 @@ function handleGpsTrainingOrientation(event) {
 
 
   const displayHeading = smoothGpsTrainingHeading(heading);
-  gpsTrainingMarker.setIcon(createGpsTrainingNavigationIcon(displayHeading));
+  const mapHeading = rotateGpsTrainingMapToHeading(displayHeading);
+  const markerHeading = getGpsTrainingMarkerScreenHeading(displayHeading, mapHeading);
+  gpsTrainingMarker.setIcon(createGpsTrainingNavigationIcon(markerHeading));
 }
 
 
@@ -3363,6 +3614,8 @@ function handleGpsTrainingPosition(position) {
 
 
   gpsTrainingPoints.push(point);
+  maybeRerouteGpsTraining(point);
+  maybeShowGpsTrainingArrival(point);
 
 
 
@@ -3411,7 +3664,9 @@ function handleGpsTrainingPosition(position) {
   const markerTitle = t("gps_training_recording", {
     accuracy: Math.round(point.accuracy || 0),
   });
-  const navigationIcon = createGpsTrainingNavigationIcon(displayHeading);
+  const mapHeading = rotateGpsTrainingMapToHeading(displayHeading);
+  const markerHeading = getGpsTrainingMarkerScreenHeading(displayHeading, mapHeading);
+  const navigationIcon = createGpsTrainingNavigationIcon(markerHeading);
   if (!gpsTrainingMarker) {
     gpsTrainingMarker = new google.maps.Marker({
       map,
@@ -3477,7 +3732,7 @@ function handleGpsTrainingPosition(position) {
 
   // 訓練中は現在地を中央へ追従させる。
   map.panTo(latLng);
-  if (gpsTrainingPoints.length === 1) map.setZoom(Math.max(map.getZoom() || 15, 17));
+  if (gpsTrainingPoints.length === 1) map.setZoom(Math.max(map.getZoom() || 15, 18));
   if (gpsTrainingIsDemo) {
     setGpsTrainingStatus("gps_training_demo_recording");
   } else {
@@ -3619,6 +3874,12 @@ function startGpsTraining() {
   gpsTrainingStoppedAt = null;
   gpsTrainingSessionId = createGpsTrainingSessionId(gpsTrainingStartedAt);
   gpsTrainingDatabaseState = "idle";
+  gpsTrainingRerouteSampleCount = 0;
+  gpsTrainingLastRerouteAt = 0;
+  gpsTrainingRerouteInProgress = false;
+  gpsTrainingArrivalSampleCount = 0;
+  gpsTrainingArrivalSnoozeUntil = 0;
+  resetGpsTrainingFeedback();
   gpsTrainingIsDemo = false;
   document.getElementById("gps-training-panel").open = true;
   setGpsTrainingStatus("gps_training_starting");
@@ -3663,6 +3924,24 @@ function startGpsTraining() {
 
 
 
+function prepareGpsTrainingDemoScenario() {
+  if (!IS_TRAINING_DEMO_VIEW || isGpsTrainingActive()) return;
+  if (!map) {
+    displayMessage(LANG === "ja" ? "地図を読み込み中です。少し待ってからもう一度押してください。" : "The map is still loading. Please try again shortly.");
+    return;
+  }
+  setAppMode("training");
+  const demoLocation = new google.maps.LatLng(
+    TRAINING_DEMO_START_LOCATION.lat,
+    TRAINING_DEMO_START_LOCATION.lng
+  );
+  map.setZoom(17);
+  map.panTo(demoLocation);
+  setStartPoint(demoLocation);
+  setGpsTrainingStatus("gps_training_demo_location");
+}
+
+
 function startGpsTrainingDemo() {
   if (!IS_TRAINING_DEMO_VIEW || !latestDestination || gpsTrainingRoutePath.length < 2 || isGpsTrainingActive()) {
     if (!latestDestination || gpsTrainingRoutePath.length < 2) setGpsTrainingStatus("gps_training_select_route");
@@ -3679,7 +3958,7 @@ function startGpsTrainingDemo() {
   gpsTrainingIsDemo = true;
   gpsTrainingDemoCursor = 0;
   document.getElementById("gps-training-panel").open = true;
-  const stepSize = Math.max(1, Math.ceil(gpsTrainingRoutePath.length / 40));
+  const stepSize = Math.max(1, Math.ceil(gpsTrainingRoutePath.length / 20));
   const advanceDemo = () => {
     const routePoint = gpsTrainingRoutePath[Math.min(gpsTrainingDemoCursor, gpsTrainingRoutePath.length - 1)];
     handleGpsTrainingPosition({
@@ -3687,7 +3966,9 @@ function startGpsTrainingDemo() {
       coords: { latitude: routePoint.lat, longitude: routePoint.lng, accuracy: 5, altitude: null, heading: null, speed: 1.2 },
     });
     if (gpsTrainingDemoCursor >= gpsTrainingRoutePath.length - 1) {
-      stopGpsTraining();
+      if (gpsTrainingDemoTimerId !== null) clearInterval(gpsTrainingDemoTimerId);
+
+      openGpsTrainingArrivalDialog();
       return;
     }
     gpsTrainingDemoCursor = Math.min(gpsTrainingRoutePath.length - 1, gpsTrainingDemoCursor + stepSize);
@@ -3722,11 +4003,13 @@ function stopGpsTraining() {
   if (gpsTrainingDemoTimerId !== null) clearInterval(gpsTrainingDemoTimerId);
   gpsTrainingDemoTimerId = null;
   stopGpsTrainingOrientation();
+  resetGpsTrainingMapHeading();
   releaseGpsTrainingWakeLock();
   if (gpsTrainingTimerId !== null) clearInterval(gpsTrainingTimerId);
   gpsTrainingTimerId = null;
   gpsTrainingStoppedAt = Date.now();
   setGpsTrainingStatus(wasDemo ? "gps_training_demo_finished" : "gps_training_finished");
+  window.setTimeout(() => openGpsTrainingFeedback(true), 0);
 }
 
 
@@ -3744,7 +4027,102 @@ function stopGpsTraining() {
 
 
 
-async function uploadGpsTrainingToDatabase() {
+const GPS_TRAINING_FEEDBACK_QUESTIONS = [
+  { id: "destinationClarity", questionKey: "training_feedback_q_destination" },
+  { id: "routeClarity", questionKey: "training_feedback_q_route" },
+  { id: "unfamiliarAreaConfidence", questionKey: "training_feedback_q_unfamiliar" },
+  { id: "anxietyReduction", questionKey: "training_feedback_q_anxiety" },
+  { id: "disasterUseIntention", questionKey: "training_feedback_q_use" },
+];
+const GPS_TRAINING_FEEDBACK_SCALE = [1, 2, 3, 4, 5];
+
+function resetGpsTrainingFeedback() {
+  gpsTrainingFeedbackAnswers = {};
+  gpsTrainingFeedbackStep = 0;
+}
+
+function renderGpsTrainingFeedback() {
+  const questionElement = document.getElementById("training-feedback-question");
+  const optionsElement = document.getElementById("training-feedback-options");
+  const progressBar = document.getElementById("training-feedback-progress-bar");
+  const progressText = document.getElementById("training-feedback-progress-text");
+  const saveButton = document.getElementById("training-feedback-save");
+  const skipButton = document.getElementById("training-feedback-skip");
+  if (!questionElement || !optionsElement || !progressBar || !progressText || !saveButton || !skipButton) return;
+
+  const questionCount = GPS_TRAINING_FEEDBACK_QUESTIONS.length;
+  const isComplete = gpsTrainingFeedbackStep >= questionCount;
+  const visibleStep = isComplete ? questionCount : gpsTrainingFeedbackStep + 1;
+  progressText.textContent = visibleStep + "/" + questionCount;
+  progressBar.style.width = ((visibleStep / questionCount) * 100) + "%";
+  optionsElement.replaceChildren();
+  saveButton.hidden = !isComplete;
+  saveButton.textContent = t(gpsTrainingIsDemo ? "training_feedback_demo_close" : "training_feedback_save");
+  skipButton.hidden = gpsTrainingIsDemo;
+
+  if (isComplete) {
+    questionElement.textContent = t("training_feedback_complete");
+    const hint = document.createElement("p");
+    hint.className = "training-feedback-lead";
+    hint.textContent = t(gpsTrainingIsDemo ? "training_feedback_demo_hint" : "training_feedback_complete_hint");
+    optionsElement.appendChild(hint);
+    return;
+  }
+
+  const question = GPS_TRAINING_FEEDBACK_QUESTIONS[gpsTrainingFeedbackStep];
+  questionElement.textContent = t(question.questionKey);
+  const scaleElement = document.createElement("div");
+  scaleElement.className = "training-feedback-scale";
+  GPS_TRAINING_FEEDBACK_SCALE.forEach((score) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "training-feedback-option";
+    button.textContent = String(score);
+    button.setAttribute("aria-label", String(score));
+    button.addEventListener("click", () => {
+      gpsTrainingFeedbackAnswers[question.id] = score;
+      gpsTrainingFeedbackStep += 1;
+      renderGpsTrainingFeedback();
+    });
+    scaleElement.appendChild(button);
+  });
+  const labels = document.createElement("div");
+  labels.className = "training-feedback-scale-labels";
+  const lowLabel = document.createElement("span");
+  lowLabel.textContent = t("training_feedback_scale_low");
+  const highLabel = document.createElement("span");
+  highLabel.textContent = t("training_feedback_scale_high");
+  labels.append(lowLabel, highLabel);
+  optionsElement.append(scaleElement, labels);
+}
+
+function openGpsTrainingFeedback(reset = false) {
+  if (gpsTrainingPoints.length === 0 || !gpsTrainingStoppedAt) return;
+  if (reset) resetGpsTrainingFeedback();
+  const dialog = document.getElementById("training-feedback-dialog");
+  if (!dialog) return;
+  renderGpsTrainingFeedback();
+  if (!dialog.open) dialog.showModal();
+}
+
+async function submitGpsTrainingFeedback(includeAnswers) {
+  const dialog = document.getElementById("training-feedback-dialog");
+  if (gpsTrainingIsDemo) {
+    if (dialog?.open) dialog.close();
+    return;
+  }
+  const saveButton = document.getElementById("training-feedback-save");
+  const skipButton = document.getElementById("training-feedback-skip");
+  if (saveButton) saveButton.disabled = true;
+  if (skipButton) skipButton.disabled = true;
+  if (dialog?.open) dialog.close();
+  const feedback = includeAnswers ? { ...gpsTrainingFeedbackAnswers } : null;
+  await uploadGpsTrainingToDatabase(feedback);
+  if (saveButton) saveButton.disabled = false;
+  if (skipButton) skipButton.disabled = false;
+}
+
+async function uploadGpsTrainingToDatabase(feedback = null) {
   if (isGpsTrainingActive() || gpsTrainingIsDemo || gpsTrainingPoints.length === 0 ||
       gpsTrainingDatabaseState === "saving" || gpsTrainingDatabaseState === "saved") return;
   if (typeof saveGpsTrainingLog !== "function") {
@@ -3779,6 +4157,10 @@ async function uploadGpsTrainingToDatabase() {
       distanceMeters: gpsTrainingDistanceMeters,
       points: gpsTrainingPoints,
     });
+    if (feedback) {
+      if (typeof saveGpsTrainingFeedback !== "function") throw new Error("feedback_save_unavailable");
+      await saveGpsTrainingFeedback({ trainingId: gpsTrainingSessionId, ...feedback });
+    }
     gpsTrainingDatabaseState = "saved";
     setGpsTrainingStatus("gps_training_uploaded");
   } catch (error) {
@@ -3807,7 +4189,22 @@ function setupGpsTraining() {
 
 
 
-  document.getElementById("gps-training-upload")?.addEventListener("click", uploadGpsTrainingToDatabase);
+  document.getElementById("gps-training-upload")?.addEventListener("click", () => openGpsTrainingFeedback(false));
+  document.getElementById("training-feedback-close")?.addEventListener("click", () => {
+    document.getElementById("training-feedback-dialog")?.close();
+  });
+  document.getElementById("training-feedback-save")?.addEventListener("click", () => submitGpsTrainingFeedback(true));
+  document.getElementById("training-feedback-skip")?.addEventListener("click", () => submitGpsTrainingFeedback(false));
+  document.getElementById("gps-training-arrival-confirm")?.addEventListener("click", () => {
+    const dialog = document.getElementById("gps-training-arrival-dialog");
+    if (dialog?.open) dialog.close();
+    stopGpsTraining();
+  });
+  document.getElementById("gps-training-arrival-continue")?.addEventListener("click", dismissGpsTrainingArrivalDialog);
+  document.getElementById("gps-training-arrival-dialog")?.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    if (!gpsTrainingIsDemo) dismissGpsTrainingArrivalDialog();
+  });
   document.getElementById("gps-training-panel")?.addEventListener("toggle", () => {
     if (typeof updateLayoutHeightVars === "function") updateLayoutHeightVars();
   });
@@ -5144,6 +5541,14 @@ function setAppMode(mode) {
   }
   const trainingStep = document.getElementById("gps-training-step");
   if (trainingStep) trainingStep.hidden = appMode !== "training";
+  const openGoogleMapsButton = document.getElementById("open-google-maps-button");
+  if (openGoogleMapsButton) {
+    const hideGoogleMapsButton = appMode === "training";
+    openGoogleMapsButton.hidden = hideGoogleMapsButton;
+    openGoogleMapsButton
+      .closest(".button-row")
+      ?.classList.toggle("single-action", hideGoogleMapsButton);
+  }
   updateGpsTrainingUI();
   updateModeGuidance();
   if (appMode !== "report") {
@@ -5747,7 +6152,17 @@ async function loadAllDestinations() {
       );
     });
     renderBuildingList();
+    destinationsReady = true;
+    const pendingStart = pendingEvacuationStart;
+    pendingEvacuationStart = null;
+    if (pendingStart &&
+        pendingStart.requestId === evacuationSearchRequestId &&
+        isEvacuationRouteMode()) {
+      findClosestPoint(pendingStart.location, pendingStart.requestId);
+    }
   } catch (error) {
+    destinationsReady = false;
+    pendingEvacuationStart = null;
     console.error(error);
     displayMessage("避難先データの読み込みエラー: " + error.message);
   }

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
@@ -4436,6 +4436,14 @@
   margin-top: 8px;
 }
 
+.button-row.single-action {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#open-google-maps-button[hidden] {
+  display: none !important;
+}
+
 
 
 
@@ -5148,6 +5156,42 @@
     }
     #gps-training-demo:disabled { opacity: .45; cursor: default; }
     .gps-training-actions button:disabled { opacity: .45; cursor: default; }
+    /* 訓練の進行状況に合わせて、次に押すボタンだけを強調する。 */
+    .gps-training-actions button.is-next-action,
+    #gps-training-demo.is-next-action {
+      position: relative;
+      z-index: 1;
+      transform: translateY(-1px);
+      animation: gps-training-next-action 1.6s ease-in-out infinite;
+    }
+    #gps-training-start.is-next-action,
+    #gps-training-demo.is-next-action {
+      --next-action-ring: rgba(0, 123, 255, .48);
+      --next-action-shadow: rgba(0, 123, 255, .30);
+    }
+    #gps-training-stop.is-next-action {
+      --next-action-ring: rgba(198, 40, 40, .48);
+      --next-action-shadow: rgba(198, 40, 40, .30);
+    }
+    #gps-training-upload.is-next-action {
+      --next-action-ring: rgba(0, 105, 92, .48);
+      --next-action-shadow: rgba(0, 105, 92, .30);
+    }
+    @keyframes gps-training-next-action {
+      0%, 100% {
+        box-shadow: 0 0 0 3px var(--next-action-ring), 0 7px 16px var(--next-action-shadow);
+      }
+      50% {
+        box-shadow: 0 0 0 7px rgba(255, 255, 255, 0), 0 9px 22px var(--next-action-shadow);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .gps-training-actions button.is-next-action,
+      #gps-training-demo.is-next-action {
+        animation: none;
+        box-shadow: 0 0 0 4px var(--next-action-ring), 0 7px 16px var(--next-action-shadow);
+      }
+    }
     #gps-training-status { min-height: 1.3em; margin: 7px 0 0; font-size: .82em; }
 
 
@@ -5418,6 +5462,12 @@
 
 
 
+
+    /* 計測は継続するが、開発・分析用の数値は利用者画面に表示しない。 */
+    .gps-training-distance-stat,
+    .gps-training-points-stat {
+      display: none;
+    }
 
     /* PCの画面確認用デモでも、訓練中は地図と計測操作だけを見せる。 */
     body.gps-training-active .info-area {
@@ -7227,6 +7277,148 @@
       }
       .training-intro-step p { font-size: .8rem; }
     }
+    /* 避難先付近に着いたときの確認カード */
+    #gps-training-arrival-dialog {
+      width: min(430px, calc(100vw - 24px));
+      padding: 0;
+      border: 0;
+      border-radius: 24px;
+      background: #fff;
+      color: #14232d;
+      box-shadow: 0 22px 70px rgba(7, 35, 52, .34);
+      overflow: hidden;
+    }
+    #gps-training-arrival-dialog::backdrop {
+      background: rgba(8, 28, 42, .48);
+      backdrop-filter: blur(2px);
+    }
+    .gps-training-arrival-card { padding: 0 22px 20px; text-align: center; }
+    .gps-training-arrival-accent {
+      height: 7px;
+      margin: 0 -22px 18px;
+      background: linear-gradient(90deg, #0a8f5b, #25b86f);
+    }
+    .gps-training-arrival-icon {
+      display: grid;
+      place-items: center;
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 12px;
+      border-radius: 50%;
+      background: #e6f7ee;
+      color: #08794d;
+      font-size: 1.8rem;
+      font-weight: 900;
+    }
+    #gps-training-arrival-title {
+      margin: 0;
+      color: #153b2d;
+      font-size: 1.25rem;
+      line-height: 1.4;
+    }
+    .gps-training-arrival-lead {
+      margin: 9px 0 15px;
+      color: #58686f;
+      font-size: .88rem;
+      line-height: 1.55;
+    }
+    .gps-training-arrival-destination {
+      display: grid;
+      gap: 4px;
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #f0f7f4;
+      text-align: left;
+    }
+    .gps-training-arrival-destination span {
+      color: #61746b;
+      font-size: .74rem;
+      font-weight: 700;
+    }
+    #gps-training-arrival-destination-name {
+      color: #173a2d;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+    .gps-training-arrival-actions { display: grid; gap: 9px; }
+    #gps-training-arrival-confirm,
+    #gps-training-arrival-continue {
+      width: 100%;
+      min-height: 48px;
+      padding: 10px 14px;
+      border-radius: 13px;
+      font: inherit;
+      font-weight: 800;
+    }
+    #gps-training-arrival-confirm {
+      border: 0;
+      background: #08794d;
+      color: #fff;
+    }
+    #gps-training-arrival-continue {
+      border: 1px solid #b7c7c0;
+      background: #fff;
+      color: #385248;
+    }
+    @media(max-width:520px) {
+      #gps-training-arrival-dialog {
+        width: calc(100vw - 16px);
+        margin: auto 8px 8px;
+        border-radius: 24px 24px 18px 18px;
+      }
+      .gps-training-arrival-card { padding: 0 18px 17px; }
+      .gps-training-arrival-accent { margin: 0 -18px 16px; }
+    }
+    /* 避難訓練終了後の5段階アンケート。スマホでは地図を隠しすぎない下部カードにする。 */
+    #training-feedback-dialog {
+      width: min(460px, calc(100vw - 24px)); padding: 0; border: 0;
+      border-radius: 24px; background: #fff; color: #14232d;
+      box-shadow: 0 22px 70px rgba(7, 35, 52, .32); overflow: hidden;
+    }
+    #training-feedback-dialog::backdrop { background: rgba(8, 28, 42, .48); backdrop-filter: blur(2px); }
+    .training-feedback-card { position: relative; padding: 0 22px 20px; }
+    .training-feedback-accent { height: 6px; margin: 0 -22px 17px; background: linear-gradient(90deg,#08a678,#14b8d4); }
+    .training-feedback-topline { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    #training-feedback-title { margin:0; font-size:.98rem; font-weight:800; color:#24404f; }
+    #training-feedback-close {
+      width:34px; height:34px; padding:0; border:0; border-radius:50%;
+      background:#f0f4f5; color:#53636c; font-size:1.15rem; line-height:1;
+    }
+    .training-feedback-lead { margin:7px 0 0; color:#64727b; font-size:.8rem; line-height:1.45; }
+    .training-feedback-progress { display:flex; align-items:center; gap:10px; margin:17px 0 16px; }
+    .training-feedback-progress-track { flex:1; height:5px; border-radius:999px; background:#e5ecef; overflow:hidden; }
+    #training-feedback-progress-bar { display:block; width:20%; height:100%; border-radius:inherit; background:#079775; transition:width .2s ease; }
+    #training-feedback-progress-text { min-width:34px; color:#497060; font-size:.76rem; font-weight:800; text-align:right; }
+    #training-feedback-question { min-height:2.9em; margin:0 0 18px; font-size:1.12rem; line-height:1.45; letter-spacing:.01em; }
+    #training-feedback-options { display:block; }
+    .training-feedback-scale { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+    .training-feedback-option {
+      aspect-ratio:1; min-width:0; padding:0; border:2px solid #d8e2e5; border-radius:50%;
+      background:#fff; color:#245043; font-size:1rem; font-weight:850; text-align:center;
+      transition:transform .12s ease,background .12s ease,border-color .12s ease;
+    }
+    .training-feedback-option:active,.training-feedback-option:focus-visible {
+      transform:scale(.94); border-color:#079775; background:#e8f8f3; outline:none;
+    }
+    .training-feedback-scale-labels { display:flex; justify-content:space-between; gap:12px; margin-top:9px; color:#6a767d; font-size:.72rem; line-height:1.25; }
+    .training-feedback-scale-labels span:last-child { text-align:right; }
+    #training-feedback-save {
+      width:100%; min-height:50px; margin-top:3px; border:0; border-radius:14px;
+      background:#00695c; color:#fff; font-size:.96rem; font-weight:800;
+    }
+    #training-feedback-skip {
+      display:block; margin:12px auto 0; padding:6px 9px; border:0; background:transparent;
+      color:#728087; font-size:.78rem; text-decoration:underline;
+    }
+    #training-feedback-save:disabled,#training-feedback-skip:disabled{opacity:.55}
+    @media(max-width:520px){
+      #training-feedback-dialog { width:calc(100vw - 16px); margin:auto 8px 8px; border-radius:24px 24px 18px 18px; }
+      .training-feedback-card{padding:0 18px 17px}
+      .training-feedback-accent{margin:0 -18px 15px}
+      #training-feedback-question{font-size:1.05rem}
+    }
+
   </style>
 </head>
 <body>
@@ -7367,6 +7559,43 @@
 
 
 
+  <!-- 避難先付近に着いたときの到着確認 -->
+  <dialog id="gps-training-arrival-dialog" aria-labelledby="gps-training-arrival-title">
+    <div class="gps-training-arrival-card">
+      <div class="gps-training-arrival-accent" aria-hidden="true"></div>
+      <div class="gps-training-arrival-icon" aria-hidden="true">✓</div>
+      <h2 id="gps-training-arrival-title" data-i18n="gps_training_arrival_title">避難先に到着しましたか？</h2>
+      <p class="gps-training-arrival-lead" data-i18n="gps_training_arrival_lead">周囲を確認し、避難先の建物または場所まで到着していれば訓練を終了してください。</p>
+      <p class="gps-training-arrival-destination">
+        <span data-i18n="gps_training_arrival_destination">避難先</span>
+        <strong id="gps-training-arrival-destination-name">―</strong>
+      </p>
+      <div class="gps-training-arrival-actions">
+        <button id="gps-training-arrival-confirm" type="button" data-i18n="gps_training_arrival_confirm">到着したので訓練を終了</button>
+        <button id="gps-training-arrival-continue" type="button" data-i18n="gps_training_arrival_continue">まだ到着していない</button>
+      </div>
+    </div>
+  </dialog>
+  <!-- 避難訓練を終えた利用者向けの5段階アンケート -->
+  <dialog id="training-feedback-dialog" aria-labelledby="training-feedback-title">
+    <div class="training-feedback-card">
+      <div class="training-feedback-accent" aria-hidden="true"></div>
+      <div class="training-feedback-topline">
+        <h2 id="training-feedback-title" data-i18n="training_feedback_title">アンケートのご協力をお願いします！</h2>
+        <button id="training-feedback-close" type="button" aria-label="閉じる">×</button>
+      </div>
+      <p class="training-feedback-lead" data-i18n="training_feedback_lead">あてはまる数字を選んでください。</p>
+      <div class="training-feedback-progress" aria-hidden="true">
+        <span class="training-feedback-progress-track"><span id="training-feedback-progress-bar"></span></span>
+        <span id="training-feedback-progress-text">1/5</span>
+      </div>
+      <h3 id="training-feedback-question"></h3>
+      <div id="training-feedback-options"></div>
+      <button id="training-feedback-save" type="button" hidden data-i18n="training_feedback_save">記録と回答を保存する</button>
+      <button id="training-feedback-skip" type="button" data-i18n="training_feedback_skip">回答せず記録だけ保存</button>
+    </div>
+  </dialog>
+
   <!-- 起動時に表示する使い方案内 -->
   <dialog id="welcome-dialog" aria-labelledby="welcome-title">
     <div class="welcome-hero">
@@ -7376,33 +7605,32 @@
       <div class="welcome-hero-copy">
         <p class="welcome-eyebrow" data-i18n="welcome_eyebrow">TSUNAMI EVACUATION SUPPORT</p>
         <h2 id="welcome-title" tabindex="-1" data-i18n="welcome_title">『逃げるーと』を使ってみよう！</h2>
-        <p class="welcome-intro" data-i18n="welcome_intro">避難・地域情報・観光を、ひとつの地図で確認できます。</p>
+        <p class="welcome-intro" data-i18n="welcome_intro">突然の津波でも、今いる場所から逃げる道がすぐわかる。</p>
       </div>
     </div>
     <div class="welcome-dialog-inner">
-      <p class="welcome-section-label" data-i18n="welcome_modes_label">3つのモード</p>
       <div class="welcome-mode-list">
-        <section class="welcome-mode-item evacuation">
+        <button id="welcome-evacuation-start" class="welcome-mode-item evacuation" type="button">
           <span class="welcome-mode-icon" aria-hidden="true"><img src="./onboarding_evacuation.svg" alt=""></span>
-          <div class="welcome-mode-copy">
-            <h3 data-i18n="welcome_evacuation_title">避難する</h3>
-            <p data-i18n="welcome_evacuation_text">出発地点を選ぶと、近くの避難先と徒歩経路を表示します。</p>
-          </div>
-        </section>
-        <section class="welcome-mode-item report">
+          <span class="welcome-mode-copy">
+            <span class="welcome-mode-title" data-i18n="welcome_evacuation_title">避難する</span>
+            <span class="welcome-mode-text" data-i18n="welcome_evacuation_text">出発地点を選ぶと、近くの避難先と徒歩経路を表示します。</span>
+          </span>
+        </button>
+        <button id="welcome-report-start" class="welcome-mode-item report" type="button">
           <span class="welcome-mode-icon" aria-hidden="true"><img src="./onboarding_report.svg" alt=""></span>
-          <div class="welcome-mode-copy">
-            <h3 data-i18n="welcome_report_title">地域情報を投稿</h3>
-            <p data-i18n="welcome_report_text">まちで気づいた道路の情報を、地図上の地点に投稿できます。</p>
-          </div>
-        </section>
-        <section class="welcome-mode-item tourism">
+          <span class="welcome-mode-copy">
+            <span class="welcome-mode-title" data-i18n="welcome_report_title">地域情報を投稿</span>
+            <span class="welcome-mode-text" data-i18n="welcome_report_text">まちで気づいた道路の情報を、地図上の地点に投稿できます。</span>
+          </span>
+        </button>
+        <button id="welcome-tourism-start" class="welcome-mode-item tourism" type="button">
           <span class="welcome-mode-icon" aria-hidden="true"><img src="./onboarding_tourism.svg" alt=""></span>
-          <div class="welcome-mode-copy">
-            <h3 data-i18n="welcome_tourism_title">観光マップ</h3>
-            <p data-i18n="welcome_tourism_text">函館の観光地を種類ごとに探せます。</p>
-          </div>
-        </section>
+          <span class="welcome-mode-copy">
+            <span class="welcome-mode-title" data-i18n="welcome_tourism_title">観光マップ</span>
+            <span class="welcome-mode-text" data-i18n="welcome_tourism_text">函館の観光地を種類ごとに探せます。</span>
+          </span>
+        </button>
         <button id="welcome-training-start" class="welcome-mode-item training" type="button">
           <span class="welcome-mode-icon" aria-hidden="true"><img src="./onboarding_evacuation.svg" alt=""></span>
           <span class="welcome-mode-copy">
@@ -9873,7 +10101,7 @@
           <button class="use-location" onclick="useCurrentLocation()" data-i18n="btn_use_current">
             現在地から避難
           </button>
-          <button class="launch-gmap" onclick="launchGoogleMap()" data-i18n="btn_open_gmaps">
+          <button id="open-google-maps-button" class="launch-gmap" onclick="launchGoogleMap()" data-i18n="btn_open_gmaps">
             Googleマップで開く
           </button>
         </div>
@@ -9887,8 +10115,8 @@
           </dl>
           <div class="gps-training-stats" aria-live="polite">
             <div class="gps-training-stat"><span data-i18n="gps_training_elapsed">経過時間</span><strong id="gps-training-elapsed">00:00</strong></div>
-            <div class="gps-training-stat"><span data-i18n="gps_training_distance">移動距離（概算）</span><strong id="gps-training-distance">0 m</strong></div>
-            <div class="gps-training-stat"><span data-i18n="gps_training_points">記録地点</span><strong id="gps-training-points">0</strong></div>
+            <div class="gps-training-stat gps-training-distance-stat"><span data-i18n="gps_training_distance">移動距離（概算）</span><strong id="gps-training-distance">0 m</strong></div>
+            <div class="gps-training-stat gps-training-points-stat"><span data-i18n="gps_training_points">記録地点</span><strong id="gps-training-points">0</strong></div>
             <div class="gps-training-stat"><span data-i18n="gps_training_route_remaining">経路の残り（概算）</span><strong id="gps-training-route-remaining">―</strong></div>
           </div>
           <div class="gps-training-actions">
@@ -10462,8 +10690,8 @@
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  <script src="./supabase_reports.js?v=20260930-1"></script>
  <script src="./supabase_buildings.js?v=20260910-1"></script>
- <script src="./supabase_gps.js?v=20260930-1"></script>
- <script src="./map_eva.js?v=20261023-2"></script>
+ <script src="./supabase_gps.js?v=20261027-2"></script>
+ <script src="./map_eva.js?v=20261028-6"></script>
 
 
 
@@ -10607,12 +10835,12 @@
       if (!welcomeDialog || !trainingButton || !introDialog || !goButton || !backButton) return;
 
       if (isTrainingDemoView) {
-        step1Title?.setAttribute("data-training-ja", "地図から出発地点を選ぶ");
-        step1Title?.setAttribute("data-training-en", "Choose a starting point on the map");
-        step1Text?.setAttribute("data-training-ja", "地図をタップすると、近くの避難先と経路が表示されます。");
-        step1Text?.setAttribute("data-training-en", "Tap the map to see a nearby evacuation destination and route.");
-        goButton.setAttribute("data-training-ja", "地図から出発地点を選ぶ");
-        goButton.setAttribute("data-training-en", "Choose a starting point on the map");
+        step1Title?.setAttribute("data-training-ja", "浸水域内の現在地から始める");
+        step1Title?.setAttribute("data-training-en", "Start from a location in the inundation zone");
+        step1Text?.setAttribute("data-training-ja", "函館駅周辺の浸水想定区域内に、デモ上の現在地と避難経路を表示します。");
+        step1Text?.setAttribute("data-training-en", "Show a demo location and evacuation route in the inundation zone near Hakodate Station.");
+        goButton.setAttribute("data-training-ja", "浸水域内の現在地を表示");
+        goButton.setAttribute("data-training-en", "Show demo location in inundation zone");
       }
 
 
@@ -11029,7 +11257,9 @@
       goButton.addEventListener("click", () => {
         closeDialog(introDialog);
         if (typeof window.setAppMode === "function") window.setAppMode("training");
-        if (!isTrainingDemoView && typeof window.useCurrentLocation === "function") {
+        if (isTrainingDemoView && typeof window.prepareGpsTrainingDemoScenario === "function") {
+          window.prepareGpsTrainingDemoScenario();
+        } else if (typeof window.useCurrentLocation === "function") {
           window.useCurrentLocation();
         }
       });
